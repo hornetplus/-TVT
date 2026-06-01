@@ -4,8 +4,8 @@ param(
     [string]$ServerUser = "root",
     [string]$ServerPassword = "Samsung1992",
     [int]$WebVersion = 3,
-    [int]$ApkVersionCode = 2,
-    [string]$ApkVersionName = "1.1",
+    [int]$ApkVersionCode = 3,
+    [string]$ApkVersionName = "1.2",
     [switch]$SkipApk
 )
 
@@ -24,6 +24,13 @@ if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
 Compress-Archive -Path (Join-Path $webSrc "*") -DestinationPath $zipPath -Force
 $hash = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash.ToLower()
 
+$newsPath = Join-Path $PSScriptRoot "news.json"
+$buildNews = Join-Path $PSScriptRoot "build-ctvt-news.py"
+if (Test-Path $buildNews) {
+    python $buildNews
+    if (-not (Test-Path $newsPath)) { Write-Warning "news.json not built, bundle skipped" }
+}
+
 $manifest = @{
     webVersion       = $WebVersion
     webBundleUrl     = "https://jjkkll.top/ctvt/web-bundle.zip"
@@ -40,6 +47,10 @@ $batch = @("-pw", $ServerPassword, "-batch")
 & $plink @("-ssh", "${ServerUser}@${ServerHost}", "-pw", $ServerPassword, "-batch") "mkdir -p /var/www/ctvt"
 & $pscp @($batch + $zipPath + "${ServerUser}@${ServerHost}:/var/www/ctvt/web-bundle.zip")
 & $pscp @($batch + $verPath + "${ServerUser}@${ServerHost}:/var/www/ctvt/version.json")
+if (Test-Path $newsPath) {
+    & $pscp @($batch + $newsPath + "${ServerUser}@${ServerHost}:/var/www/ctvt/news.json")
+    Write-Host "  https://jjkkll.top/ctvt/news.json"
+}
 
 if (-not $SkipApk) {
     $apkLocal = Join-Path $root "app\build\outputs\apk\debug\app-debug.apk"

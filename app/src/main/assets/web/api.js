@@ -55,16 +55,22 @@ function relTime(date) {
   return Math.floor(hr / 24) + ' дн';
 }
 function fmtQty(n) {
+  if (!Number.isFinite(n)) return '—';
   if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
   if (n >= 1e3) return Math.round(n).toLocaleString('en-US');
   if (n >= 1)   return n.toFixed(0);
   return n.toFixed(2);
 }
 function fmtUsdShort(n) {
+  if (!Number.isFinite(n)) return '—';
   if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
   if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
   if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
   return n.toFixed(0);
+}
+function whaleTradeOk(trade) {
+  return trade && Number.isFinite(trade.sz) && trade.sz > 0
+    && Number.isFinite(trade.usd) && trade.usd > 0;
 }
 function categorize(title) {
   const t = (title || '').toLowerCase();
@@ -213,8 +219,19 @@ function newsMaxAgeMs() {
 
 function parseNewsDate(raw) {
   if (!raw) return new Date();
-  const d = raw instanceof Date ? raw : new Date(raw);
+  if (raw instanceof Date && !isNaN(raw.getTime())) return raw;
+  const s = String(raw).trim();
+  // rss2json: "2026-06-01 07:09:14" — в WebView на TV Date() часто даёт Invalid Date
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (m) {
+    return new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)));
+  }
+  const d = new Date(s);
   if (!isNaN(d.getTime())) return d;
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s) && !/[zZ]|[+-]\d{2}:?\d{2}$/.test(s)) {
+    const d2 = new Date(s + 'Z');
+    if (!isNaN(d2.getTime())) return d2;
+  }
   return new Date();
 }
 
@@ -285,7 +302,39 @@ async function fetchFeed(src) {
   return false;
 }
 
+async function pollNewsBundle() {
+  const url = (CONFIG.news && CONFIG.news.bundleUrl) || 'https://jjkkll.top/ctvt/news.json';
+  try {
+    const d = await fetchJSON(url, {}, 12000);
+    const items = (d && d.items) || (Array.isArray(d) ? d : []);
+    if (items.length && ingestNews(items.map((it) => ({
+      id: it.id || ('bundle:' + (it.link || it.title)),
+      title: cleanText(it.title),
+      source: it.source || 'CTVT',
+      glyph: it.glyph,
+      color: it.color || '#2BE3F0',
+      date: parseNewsDate(it.date || it.pubDate),
+    })))) return true;
+  } catch (e) { /* fallback */ }
+  return false;
+}
+
+async function pollNewsRssBurst() {
+  const burst = (CONFIG.news && CONFIG.news.burstSources) || CONFIG.newsSources.slice(0, 6);
+  let got = 0;
+  await Promise.allSettled(burst.map((src) => fetchFeed(src).then((ok) => { if (ok) got++; })));
+  return got > 0;
+}
+
 async function pollNews() {
+  if (await pollNewsBundle()) {
+    newsBootstrapped = true;
+    return;
+  }
+  if (await pollNewsRssBurst()) {
+    newsBootstrapped = true;
+    return;
+  }
   if (CONFIG.keys.cryptopanic) {
     try {
       const api = `https://cryptopanic.com/api/v1/posts/?auth_token=${CONFIG.keys.cryptopanic}&public=true&kind=news`;
@@ -315,6 +364,7 @@ async function pollNews() {
 let whaleSeen = new Set();
 
 function emitWhaleTrade(p, trade) {
+  if (!whaleTradeOk(trade)) return;
   const key = trade.source + ':' + trade.id;
   if (whaleSeen.has(key)) return;
   whaleSeen.add(key);
@@ -329,9 +379,10 @@ function emitWhaleTrade(p, trade) {
 }
 
 function emitWhaleHits(p, hits) {
-  hits.sort((a, b) => b.usd - a.usd);
+  const ok = hits.filter(whaleTradeOk);
+  ok.sort((a, b) => b.usd - a.usd);
   let n = 0;
-  hits.slice(0, 4).forEach((h) => {
+  ok.slice(0, 4).forEach((h) => {
     emitWhaleTrade(p, h);
     n++;
   });
@@ -404,14 +455,14 @@ async function whaleFromBybit(p) {
   const cutoff = Date.now() - 120000;
   const hits = [];
   for (const t of arr) {
-    const px = parseFloat(t.p);
-    const sz = parseFloat(t.v);
+    const px = parseFloat(t.price ?? t.p);
+    const sz = parseFloat(t.size ?? t.v ?? t.q);
     const usd = px * sz;
-    const ts = +(t.T || t.time || 0);
-    if (usd < p.minUsd || ts < cutoff) continue;
-    const side = (t.S || t.side || '').toLowerCase() === 'buy' ? 'buy' : 'sell';
+    const ts = +(t.time ?? t.T ?? 0);
+    if (!Number.isFinite(usd) || usd < p.minUsd || ts < cutoff) continue;
+    const side = String(t.side ?? t.S ?? '').toLowerCase() === 'buy' ? 'buy' : 'sell';
     hits.push({
-      id: String(t.i || t.execId || t.T + t.p),
+      id: String(t.execId ?? t.i ?? t.time + String(px)),
       side,
       sz,
       usd,

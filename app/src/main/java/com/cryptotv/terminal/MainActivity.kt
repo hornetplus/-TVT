@@ -24,6 +24,11 @@ class MainActivity : Activity() {
     private lateinit var root: FrameLayout
     private var loadingLabel: TextView? = null
 
+    /** Долгое нажатие «Назад» на пульте — выход из приложения. */
+    private val backExitMs = 1200L
+    private val backHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val backExitRunnable = Runnable { finishAffinity() }
+
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -124,8 +129,22 @@ class MainActivity : Activity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == KeyEvent.KEYCODE_BACK) return true
+        if (keyCode == KeyEvent.KEYCODE_BACK && event != null) {
+            if (event.repeatCount == 0) {
+                backHandler.removeCallbacks(backExitRunnable)
+                backHandler.postDelayed(backExitRunnable, backExitMs)
+            }
+            return true
+        }
         return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            backHandler.removeCallbacks(backExitRunnable)
+            return true
+        }
+        return super.onKeyUp(keyCode, event)
     }
 
     override fun onResume() {

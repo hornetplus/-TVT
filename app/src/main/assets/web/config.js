@@ -33,6 +33,15 @@ const CONFIG = {
     panelMax: 5,
     archiveMax: 80,
     sourcesPerPoll: 8,
+    bundleUrl: 'https://jjkkll.top/ctvt/news.json',
+    burstSources: [
+      { name: 'Cointelegraph',   url: 'https://cointelegraph.com/rss',                   glyph: 'C', color: '#F0B23B', lang: 'en' },
+      { name: 'CoinDesk',        url: 'https://www.coindesk.com/arc/outboundfeeds/rss/', glyph: 'C', color: '#F7931A', lang: 'en' },
+      { name: 'Decrypt',         url: 'https://decrypt.co/feed',                         glyph: 'D', color: '#1FD98A', lang: 'en' },
+      { name: 'ForkLog',         url: 'https://forklog.com/feed/',                       glyph: 'F', color: '#2BE3F0', lang: 'ru' },
+      { name: 'Cointelegraph RU',url: 'https://ru.cointelegraph.com/rss',                glyph: 'C', color: '#F0B23B', lang: 'ru' },
+      { name: 'U.Today',         url: 'https://u.today/rss',                             glyph: 'U', color: '#2775CA', lang: 'en' },
+    ],
   },
 
   // -------- Интервалы опроса (мс) --------

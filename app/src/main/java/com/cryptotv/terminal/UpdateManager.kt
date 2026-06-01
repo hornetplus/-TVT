@@ -30,7 +30,7 @@ object UpdateManager {
     private const val KEY_WEB_VERSION = "web_version"
     private const val WEB_DIR = "ctvt-web"
     /** Версия web, вшитая в APK (assets/web). */
-    const val BUNDLED_WEB_VERSION = 4
+    const val BUNDLED_WEB_VERSION = 5
 
     data class Result(
         val webUrl: String,

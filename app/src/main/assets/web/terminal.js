@@ -403,6 +403,9 @@ function renderNews() {
 }
 function onNews(n) {
   if (!n || !n.title || newsIds.has(n.id)) return;
+  if (!(n.date instanceof Date) || isNaN(n.date.getTime())) {
+    n.date = typeof parseNewsDate === 'function' ? parseNewsDate(n.date) : new Date();
+  }
   if (!newsIsFresh(n)) return;
   newsIds.add(n.id);
   n._domId = ++newsDomSeq;
