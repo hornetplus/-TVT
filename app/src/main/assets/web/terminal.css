@@ -520,12 +520,27 @@ html, body {
 .ctv-overlay__nav .btn-ghost { width: auto; min-width: 200px; flex: none; }
 .ctv-overlay__page { font-size: 16px; font-weight: 800; color: var(--ink-2); min-width: 120px; text-align: center; }
 
-.ov-wl-row, .ov-tx-row, .ov-news-row {
+.ov-wl-row, .ov-tx-row {
   display: grid; align-items: center; gap: var(--sp-4);
   padding: var(--sp-4) var(--sp-5);
   border-radius: 14px; background: var(--inset); border: 1px solid var(--line-2);
 }
 .ov-wl-row { grid-template-columns: 46px 1fr auto auto; }
 .ov-tx-row { grid-template-columns: 44px 100px 1fr auto; }
-.ov-news-row { grid-template-columns: 48px 1fr; }
-.ov-news-row .news-title { -webkit-line-clamp: 3; }
+
+/* Новости в оверлее: без вложенного grid (иначе карточка сжимается в 48px) */
+.ctv-overlay__body .news-item {
+  flex: none;
+  min-height: auto;
+  width: 100%;
+}
+.ctv-overlay__body .news-title {
+  font-size: 18px;
+  line-height: 1.35;
+  -webkit-line-clamp: 4;
+}
+.ctv-overlay__body .news-av {
+  width: 52px;
+  height: 52px;
+  font-size: 20px;
+}

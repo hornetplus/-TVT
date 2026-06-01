@@ -126,7 +126,7 @@ function rowPriceBlock(a) {
 function rowHtml(sym) {
   const a = ASSET_STATE[sym];
   const up = a.change24hPct >= 0;
-  const spark = wlMode === 'vol' ? '' : miniSpark(a.sparkline.length ? a.sparkline : [0, 0], up);
+  const spark = miniSpark(a.sparkline.length ? a.sparkline : [0, 0], up);
   return `<div class="wl-row" data-sym="${sym}">
     ${coinIcon(a)}
     <div class="wl-name"><div class="tk">${sym}</div><div class="nm">${a.name}</div></div>
@@ -158,10 +158,9 @@ function updateVisibleRows(bySym) {
     const priceWrap = row.querySelector('.wl-price');
     if (priceWrap) priceWrap.outerHTML = rowPriceBlock(a);
     const sp = row.querySelector('.spark');
-    if (wlMode === 'vol' && sp) sp.remove();
-    else if (wlMode !== 'vol' && !sp) {
-      row.insertAdjacentHTML('beforeend', miniSpark(a.sparkline.length ? a.sparkline : [a.priceUsd || 0], up));
-    } else if (sp) sp.outerHTML = miniSpark(a.sparkline.length ? a.sparkline : [a.priceUsd || 0], up);
+    const sparkVals = a.sparkline.length ? a.sparkline : [a.priceUsd || 0];
+    if (!sp) row.insertAdjacentHTML('beforeend', miniSpark(sparkVals, up));
+    else sp.outerHTML = miniSpark(sparkVals, up);
     const prev = prevPrice[sym];
     if (prev != null && a.priceUsd && a.priceUsd !== prev) {
       const dir = a.priceUsd > prev ? 'up' : 'down';
@@ -500,7 +499,7 @@ function onMarkets(bySym) {
    9. ОВЕРЛЕИ: все активы / сделки / новости
    ========================================================= */
 let overlayNewsPage = 0;
-const OVERLAY_NEWS_PAGE = 8;
+const OVERLAY_NEWS_PAGE = 6;
 
 function openOverlay(title, html, opts) {
   const ov = $('#ctv-overlay');
@@ -560,8 +559,8 @@ function renderNewsOverlayPage() {
   overlayNewsPage = Math.max(0, Math.min(overlayNewsPage, pages - 1));
   const slice = items.slice(overlayNewsPage * OVERLAY_NEWS_PAGE, overlayNewsPage * OVERLAY_NEWS_PAGE + OVERLAY_NEWS_PAGE);
   const html = slice.length
-    ? slice.map((n) => `<div class="ov-news-row">${newsHtml(n)}</div>`).join('')
-    : '<div class="ov-news-row" style="opacity:.5">Нет новостей за последние 5 часов</div>';
+    ? slice.map((n) => newsHtml(n)).join('')
+    : '<div class="news-item" style="opacity:.5">Нет новостей за последние 5 часов</div>';
   openOverlay('Новости · последний час', html, { paged: items.length > OVERLAY_NEWS_PAGE });
   const pageEl = $('#ctv-overlay-page');
   if (pageEl) pageEl.textContent = items.length ? `${overlayNewsPage + 1} / ${pages}` : '—';

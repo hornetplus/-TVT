@@ -1,0 +1,365 @@
+{
+  "updated": "2026-06-01T08:40:32.849963+00:00",
+  "items": [
+    {
+      "id": "Cointelegraph:https://cointelegraph.com/news/nydig-ibit-whale-exit-directional-bitcoin-trade",
+      "title": "NYDIG suggests $1.3B IBIT sale was whale exiting directional trade",
+      "source": "Cointelegraph",
+      "glyph": "C",
+      "color": "#F0B23B",
+      "date": "2026-06-01 07:09:14",
+      "link": "https://cointelegraph.com/news/nydig-ibit-whale-exit-directional-bitcoin-trade?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound"
+    },
+    {
+      "id": "CoinDesk:defac05f-6cd7-4025-892d-e54ec3efe529",
+      "title": "Citi predicts the tokenized securities market will grow to $5.5 trillion by 2030",
+      "source": "CoinDesk",
+      "glyph": "C",
+      "color": "#F7931A",
+      "date": "2026-06-01 06:57:05",
+      "link": "https://www.coindesk.com/markets/2026/06/01/citi-predicts-the-tokenized-securities-market-will-grow-to-usd5-5-trillion-by-2030"
+    },
+    {
+      "id": "CoinDesk:4efea742-1492-4ef4-b3d3-6699f81bad4a",
+      "title": "Whitehat developer unlocks $2 million stuck in a 2016 Ethereum ICO contract for nine years",
+      "source": "CoinDesk",
+      "glyph": "C",
+      "color": "#F7931A",
+      "date": "2026-06-01 06:52:38",
+      "link": "https://www.coindesk.com/tech/2026/06/01/whitehat-developer-unlocks-usd2-million-stuck-in-a-2016-ethereum-ico-contract-for-nine-years"
+    },
+    {
+      "id": "Cointelegraph:https://cointelegraph.com/news/sui-major-upgrade-fixes-outage-bugs-restores-network",
+      "title": "Sui Foundation says ‘major upgrade’ fixed bugs behind three outages",
+      "source": "Cointelegraph",
+      "glyph": "C",
+      "color": "#F0B23B",
+      "date": "2026-06-01 06:48:04",
+      "link": "https://cointelegraph.com/news/sui-major-upgrade-fixes-outage-bugs-restores-network?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound"
+    },
+    {
+      "id": "Cointelegraph:https://cointelegraph.com/news/crypto-exploit-losses-fall-by-90-in-may-to-68m-certik",
+      "title": "Crypto exploit losses in May fall 90% over month to $68M: CertiK",
+      "source": "Cointelegraph",
+      "glyph": "C",
+      "color": "#F0B23B",
+      "date": "2026-06-01 06:40:42",
+      "link": "https://cointelegraph.com/news/crypto-exploit-losses-fall-by-90-in-may-to-68m-certik?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound"
+    },
+    {
+      "id": "Cointelegraph:https://cointelegraph.com/news/cardano-foundation-cancels-annual-conference-after-failed-funding-vote",
+      "title": "Cardano Foundation cancels annual conference after failed funding vote",
+      "source": "Cointelegraph",
+      "glyph": "C",
+      "color": "#F0B23B",
+      "date": "2026-06-01 06:24:07",
+      "link": "https://cointelegraph.com/news/cardano-foundation-cancels-annual-conference-after-failed-funding-vote?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound"
+    },
+    {
+      "id": "CoinDesk:55fc42ae-22a2-42cb-bb38-99c84cd73156",
+      "title": "XRP drops to $1.32 as sellers overpower exchange outflows",
+      "source": "CoinDesk",
+      "glyph": "C",
+      "color": "#F7931A",
+      "date": "2026-06-01 05:41:31",
+      "link": "https://www.coindesk.com/markets/2026/06/01/xrp-drops-to-usd1-32-as-sellers-overpower-exchange-outflows"
+    },
+    {
+      "id": "CoinDesk:dcc9cff0-5280-416b-a9a7-36974abdff20",
+      "title": "Three Sui mainnet halts in 48 hours traced to an upgrade bug by developers",
+      "source": "CoinDesk",
+      "glyph": "C",
+      "color": "#F7931A",
+      "date": "2026-06-01 05:38:50",
+      "link": "https://www.coindesk.com/tech/2026/06/01/three-sui-mainnet-halts-in-48-hours-traced-to-an-upgrade-bug-by-developers"
+    },
+    {
+      "id": "CoinDesk:b7a552ac-6a73-4f3c-9e57-25420fa10227",
+      "title": "Bitcoin extends slide as spot ETF outflows hit a record while Wall Street rips on AI",
+      "source": "CoinDesk",
+      "glyph": "C",
+      "color": "#F7931A",
+      "date": "2026-06-01 05:11:40",
+      "link": "https://www.coindesk.com/markets/2026/06/01/bitcoin-extends-slide-as-spot-etf-outflows-hit-a-record-while-wall-street-rips-on-ai"
+    },
+    {
+      "id": "The Block:https://www.theblock.co/post/403135",
+      "title": "Coinbase launches Indian rupee rails with perps access in expansion push",
+      "source": "The Block",
+      "glyph": "B",
+      "color": "#6F7CE0",
+      "date": "2026-06-01 05:11:02",
+      "link": "https://www.theblock.co/post/403135/coinbase-launches-indian-rupee-rails?utm_source=rss&utm_medium=rss"
+    },
+    {
+      "id": "CoinDesk:843b2403-3b86-47b8-97eb-7026500c31a3",
+      "title": "Aave overhauls listing standards after $230 Million rsETH exploit exposed bridge risks",
+      "source": "CoinDesk",
+      "glyph": "C",
+      "color": "#F7931A",
+      "date": "2026-06-01 05:04:17",
+      "link": "https://www.coindesk.com/markets/2026/06/01/aave-overhauls-listing-standards-after-usd230-million-rseth-exploit-exposed-bridge-risks"
+    },
+    {
+      "id": "Cointelegraph:https://cointelegraph.com/news/wintermute-is-entering-prediction-markets-as-a-liquidity-provider",
+      "title": "Wintermute to bring liquidity to booming prediction markets sector",
+      "source": "Cointelegraph",
+      "glyph": "C",
+      "color": "#F0B23B",
+      "date": "2026-06-01 04:22:38",
+      "link": "https://cointelegraph.com/news/wintermute-is-entering-prediction-markets-as-a-liquidity-provider?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound"
+    },
+    {
+      "id": "The Block:https://www.theblock.co/post/403128",
+      "title": "The Funding: How crypto hedge funds are navigating weak markets",
+      "source": "The Block",
+      "glyph": "B",
+      "color": "#6F7CE0",
+      "date": "2026-06-01 03:33:52",
+      "link": "https://www.theblock.co/post/403128/the-funding-how-crypto-hedge-funds-are-navigating-weak-markets?utm_source=rss&utm_medium=rss"
+    },
+    {
+      "id": "Cointelegraph:https://cointelegraph.com/news/whitehat-helps-recover-2m-from-2016-ico-smart-contract",
+      "title": "White hat hacker recovers $2M from faulty 2016 ICO smart contract",
+      "source": "Cointelegraph",
+      "glyph": "C",
+      "color": "#F0B23B",
+      "date": "2026-06-01 02:21:56",
+      "link": "https://cointelegraph.com/news/whitehat-helps-recover-2m-from-2016-ico-smart-contract?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound"
+    },
+    {
+      "id": "CoinDesk:6ba19089-1477-44b7-8ff9-6e28774ad47d",
+      "title": "Coinbase makes a major play for India’s booming $3 billion crypto market with local currency launch",
+      "source": "CoinDesk",
+      "glyph": "C",
+      "color": "#F7931A",
+      "date": "2026-05-31 23:30:00",
+      "link": "https://www.coindesk.com/markets/2026/05/31/coinbase-makes-a-major-play-for-india-s-booming-usd3-billion-crypto-market-with-local-currency-launch"
+    },
+    {
+      "id": "The Block:https://www.theblock.co/post/403126",
+      "title": "Dev helps rescue $2 million locked in 2016 ICO contract for nine years with whitehat exploit",
+      "source": "The Block",
+      "glyph": "B",
+      "color": "#6F7CE0",
+      "date": "2026-05-31 21:34:48",
+      "link": "https://www.theblock.co/post/403126/dev-helps-rescue-2-million-locked-in-2016-ico-contract-for-nine-years-with-whitehat-exploit?utm_source=rss&utm_medium=rss"
+    },
+    {
+      "id": "Cointelegraph:https://cointelegraph.com/news/us-uk-central-bankers-offer-contrary-views-on-stablecoins",
+      "title": "US, UK central bankers offer contrary views on stablecoins",
+      "source": "Cointelegraph",
+      "glyph": "C",
+      "color": "#F0B23B",
+      "date": "2026-05-31 21:11:35",
+      "link": "https://cointelegraph.com/news/us-uk-central-bankers-offer-contrary-views-on-stablecoins?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound"
+    },
+    {
+      "id": "The Block:https://www.theblock.co/post/403124",
+      "title": "Sui traces three mainnet halts to upgrade bugs, including a fix it knew carried halt risk",
+      "source": "The Block",
+      "glyph": "B",
+      "color": "#6F7CE0",
+      "date": "2026-05-31 20:46:27",
+      "link": "https://www.theblock.co/post/403124/sui-traces-three-mainnet-halts-to-upgrade-bugs-including-a-fix-it-knew-carried-halt-risk?utm_source=rss&utm_medium=rss"
+    },
+    {
+      "id": "Cointelegraph:https://cointelegraph.com/news/strategys-michael-saylor-says-working-better-tees-up-btc-buy",
+      "title": "Strategy's Michael Saylor teases BTC buy with 'working better' tweet",
+      "source": "Cointelegraph",
+      "glyph": "C",
+      "color": "#F0B23B",
+      "date": "2026-05-31 20:00:12",
+      "link": "https://cointelegraph.com/news/strategys-michael-saylor-says-working-better-tees-up-btc-buy?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound"
+    },
+    {
+      "id": "CoinDesk:2ef3b741-fc26-4c25-902d-6bba456beb21",
+      "title": "A massive $1.26 billion sale of BlackRock’s IBIT was likely a rapid exit by a large investor",
+      "source": "CoinDesk",
+      "glyph": "C",
+      "color": "#F7931A",
+      "date": "2026-05-31 19:41:51",
+      "link": "https://www.coindesk.com/markets/2026/05/31/a-massive-usd1-26-billion-sale-of-blackrock-s-ibit-was-likely-a-rapid-exit-by-a-large-investor"
+    },
+    {
+      "id": "CoinDesk:f6a46e9c-7950-4ac6-b31c-90de169a0d6c",
+      "title": "How the House Financial Services Committee is taking on tokenization: State of Crypto",
+      "source": "CoinDesk",
+      "glyph": "C",
+      "color": "#F7931A",
+      "date": "2026-05-31 18:30:00",
+      "link": "https://www.coindesk.com/policy/2026/05/31/how-the-house-financial-services-committee-is-taking-on-tokenization-state-of-crypto"
+    },
+    {
+      "id": "Cointelegraph:https://cointelegraph.com/news/kraken-plans-regulated-perp-contracts-as-rivals-are-quick-off-the-blocks",
+      "title": "Kraken ‘plans’ regulated perp contracts as rivals are quick off blocks",
+      "source": "Cointelegraph",
+      "glyph": "C",
+      "color": "#F0B23B",
+      "date": "2026-05-31 17:40:00",
+      "link": "https://cointelegraph.com/news/kraken-plans-regulated-perp-contracts-as-rivals-are-quick-off-the-blocks?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound"
+    },
+    {
+      "id": "CoinDesk:429d97a2-9fdd-4ac8-bd54-3ab18406047b",
+      "title": "How Stellar became part of DTCC's tokenization push for Wall Street securities onchain",
+      "source": "CoinDesk",
+      "glyph": "C",
+      "color": "#F7931A",
+      "date": "2026-05-31 17:00:00",
+      "link": "https://www.coindesk.com/business/2026/05/31/how-stellar-became-part-of-dtcc-s-tokenization-push-for-wall-street-securities-onchain"
+    },
+    {
+      "id": "Cointelegraph:https://cointelegraph.com/markets/bitcoin-price-preps-3-may-downside-as-us-pmi-data-preps-potential-btc-price-boost",
+      "title": "Bitcoin preps 3% May downside, but US PMI data may boost BTC price",
+      "source": "Cointelegraph",
+      "glyph": "C",
+      "color": "#F0B23B",
+      "date": "2026-05-31 16:39:40",
+      "link": "https://cointelegraph.com/markets/bitcoin-price-preps-3-may-downside-as-us-pmi-data-preps-potential-btc-price-boost?utm_source=rss_feed&utm_medium=rss&utm_campaign=rss_partner_inbound"
+    },
+    {
+      "id": "Decrypt:https://decrypt.co/?p=369479",
+      "title": "How President Trump’s Immigration Order Will Feed the Stablecoin Economy, Bitcoin ATMs",
+      "source": "Decrypt",
+      "glyph": "D",
+      "color": "#1FD98A",
+      "date": "2026-05-31 15:49:18",
+      "link": "https://decrypt.co/369479/how-president-trump-immigration-order-feed-stablecoin-bitcoin-atms"
+    },
+    {
+      "id": "The Block:https://www.theblock.co/post/403122",
+      "title": "Cardano Foundation cancels 2026 summit after treasury funding vote falls just short",
+      "source": "The Block",
+      "glyph": "B",
+      "color": "#6F7CE0",
+      "date": "2026-05-31 15:33:24",
+      "link": "https://www.theblock.co/post/403122/cardano-foundation-cancels-2026-summit-after-treasury-funding-vote-falls-just-short?utm_source=rss&utm_medium=rss"
+    },
+    {
+      "id": "The Block:https://www.theblock.co/post/403118",
+      "title": "SEC sues Privvy founder over $12.3 million crypto scheme as AI ‘bots’ turn out to be neither",
+      "source": "The Block",
+      "glyph": "B",
+      "color": "#6F7CE0",
+      "date": "2026-05-30 22:30:56",
+      "link": "https://www.theblock.co/post/403118/sec-sues-privvy-founder-over-12-3-million-crypto-scheme-as-ai-bots-turn-out-to-be-neither?utm_source=rss&utm_medium=rss"
+    },
+    {
+      "id": "The Block:https://www.theblock.co/post/403108",
+      "title": "Cosmos-based Gravity Bridge drained of $5.4 million in suspected key compromise, researchers say",
+      "source": "The Block",
+      "glyph": "B",
+      "color": "#6F7CE0",
+      "date": "2026-05-30 18:21:02",
+      "link": "https://www.theblock.co/post/403108/cosmos-based-gravity-bridge-drained-of-5-4-million-in-suspected-key-compromise-researchers-say?utm_source=rss&utm_medium=rss"
+    },
+    {
+      "id": "The Block:https://www.theblock.co/post/403083",
+      "title": "Crypto champion Trump may be jeopardizing the industry’s landmark legislation",
+      "source": "The Block",
+      "glyph": "B",
+      "color": "#6F7CE0",
+      "date": "2026-05-30 17:56:14",
+      "link": "https://www.theblock.co/post/403083/crypto-champion-trump-may-be-jeopardizing-the-industrys-landmark-legislation?utm_source=rss&utm_medium=rss"
+    },
+    {
+      "id": "Decrypt:https://decrypt.co/?p=369478",
+      "title": "Florida Candidate Liquidates $800K in Bitcoin to Bankroll Congressional Bid",
+      "source": "Decrypt",
+      "glyph": "D",
+      "color": "#1FD98A",
+      "date": "2026-05-30 15:44:30",
+      "link": "https://decrypt.co/369478/florida-candidate-liquidates-800k-bitcoin-bankroll-congressional-bid"
+    },
+    {
+      "id": "Decrypt:https://decrypt.co/?p=368830",
+      "title": "What Is an AI Prompt Injection Attack? The Hidden Threat Hijacking Your Chatbots",
+      "source": "Decrypt",
+      "glyph": "D",
+      "color": "#1FD98A",
+      "date": "2026-05-30 13:01:03",
+      "link": "https://decrypt.co/resources/what-is-ai-prompt-injection-attack"
+    },
+    {
+      "id": "The Block:https://www.theblock.co/post/403091",
+      "title": "Court-ordered Circle freeze traps $12.6 million in Zama cUSDC contract amid Overnight Finance suit",
+      "source": "The Block",
+      "glyph": "B",
+      "color": "#6F7CE0",
+      "date": "2026-05-30 12:30:00",
+      "link": "https://www.theblock.co/post/403091/court-ordered-circle-freeze-traps-12-6-million-in-zama-cusdc-contract-amid-overnight-finance-suit?utm_source=rss&utm_medium=rss"
+    },
+    {
+      "id": "Decrypt:https://decrypt.co/?p=369525",
+      "title": "'He’s Full of Shit': JP Morgan's Jamie Dimon Takes Aim at Coinbase CEO Over Clarity Act",
+      "source": "Decrypt",
+      "glyph": "D",
+      "color": "#1FD98A",
+      "date": "2026-05-29 21:24:28",
+      "link": "https://decrypt.co/369525/jp-morgan-ceo-jamie-dimon-takes-aim-coinbase-clarity-act"
+    },
+    {
+      "id": "Decrypt:https://decrypt.co/?p=369522",
+      "title": "Treasury Secretary Bessent Says US Has 'Grabbed' $1 Billion in Crypto From Iran",
+      "source": "Decrypt",
+      "glyph": "D",
+      "color": "#1FD98A",
+      "date": "2026-05-29 20:40:37",
+      "link": "https://decrypt.co/369522/treasurys-bessent-says-us-grabbed-1-billion-crypto-iran"
+    },
+    {
+      "id": "Decrypt:https://decrypt.co/?p=369520",
+      "title": "Celsius Founder Alex Mashinsky Files to Have 12-Year Crypto Fraud Sentence Vacated",
+      "source": "Decrypt",
+      "glyph": "D",
+      "color": "#1FD98A",
+      "date": "2026-05-29 20:28:18",
+      "link": "https://decrypt.co/369520/celsius-founder-mashinsky-files-12-year-crypto-fraud-sentence-vacated"
+    },
+    {
+      "id": "The Block:https://www.theblock.co/post/403075",
+      "title": "US has seized nearly $1 billion in crypto from Iran, Bessent says",
+      "source": "The Block",
+      "glyph": "B",
+      "color": "#6F7CE0",
+      "date": "2026-05-29 20:03:45",
+      "link": "https://www.theblock.co/post/403075/us-has-seized-nearly-1-billion-in-crypto-from-iran-bessent-says?utm_source=rss&utm_medium=rss"
+    },
+    {
+      "id": "Decrypt:https://decrypt.co/?p=369504",
+      "title": "Coinbase Becomes First US Exchange Allowed to Offer Global Crypto Perps Trading",
+      "source": "Decrypt",
+      "glyph": "D",
+      "color": "#1FD98A",
+      "date": "2026-05-29 19:41:34",
+      "link": "https://decrypt.co/369504/coinbase-first-us-exchange-allowed-offer-global-crypto-perps-trading"
+    },
+    {
+      "id": "Decrypt:https://decrypt.co/?p=369505",
+      "title": "Lenovo Stock Doubles in May on AI Server Boom—Best Month in 27 Years",
+      "source": "Decrypt",
+      "glyph": "D",
+      "color": "#1FD98A",
+      "date": "2026-05-29 19:34:26",
+      "link": "https://decrypt.co/369505/lenovo-stock-doubles-may-ai-server-boom"
+    },
+    {
+      "id": "Decrypt:https://decrypt.co/?p=369498",
+      "title": "You Can Now Read the US Constitution via the Bitcoin Blockchain",
+      "source": "Decrypt",
+      "glyph": "D",
+      "color": "#1FD98A",
+      "date": "2026-05-29 18:31:11",
+      "link": "https://decrypt.co/369498/you-can-read-us-constitution-bitcoin-blockchain"
+    },
+    {
+      "id": "Decrypt:https://decrypt.co/?p=369497",
+      "title": "NYSE Parent Isn't 'Freaked Out' by Hyperliquid—It's Learning From the Crypto Perps Giant",
+      "source": "Decrypt",
+      "glyph": "D",
+      "color": "#1FD98A",
+      "date": "2026-05-29 18:14:59",
+      "link": "https://decrypt.co/369497/nyse-parent-isnt-freaked-out-hyperliquid-learning-crypto-perps"
+    }
+  ]
+}

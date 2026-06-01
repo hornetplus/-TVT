@@ -28,9 +28,13 @@ object UpdateManager {
     const val VERSION_URL = "https://jjkkll.top/ctvt/version.json"
     private const val PREFS = "ctvt_updates"
     private const val KEY_WEB_VERSION = "web_version"
+    private const val KEY_WEB_SHA256 = "web_bundle_sha256"
+    private const val KEY_LAST_CHECK_MS = "last_check_ms"
+    private const val KEY_LAST_REMOTE_WEB = "last_remote_web"
+    private const val CHECK_COOLDOWN_MS = 6 * 60 * 60 * 1000L // без новой версии на сервере — не дергаем сеть
     private const val WEB_DIR = "ctvt-web"
     /** Версия web, вшитая в APK (assets/web). */
-    const val BUNDLED_WEB_VERSION = 5
+    const val BUNDLED_WEB_VERSION = 6
 
     data class Result(
         val webUrl: String,
@@ -63,14 +67,37 @@ object UpdateManager {
         var apkName: String? = null
 
         try {
-            val manifest = fetchJson(VERSION_URL) ?: return Result(webUrl, false)
-            val remoteWeb = manifest.optInt("webVersion", 0)
+            val now = System.currentTimeMillis()
+            val p = prefs(ctx)
+            val lastCheck = p.getLong(KEY_LAST_CHECK_MS, 0L)
+            val lastRemote = p.getInt(KEY_LAST_REMOTE_WEB, 0)
             val localWeb = localWebVersion(ctx)
+            val indexOk = File(webRoot(ctx), "index.html").isFile
 
-            if (remoteWeb > localWeb) {
+            if (
+                now - lastCheck < CHECK_COOLDOWN_MS &&
+                indexOk &&
+                localWeb >= lastRemote &&
+                lastRemote > 0
+            ) {
+                Log.d(TAG, "Skip update check (cooldown, web v$localWeb)")
+                return Result(webUrl, false)
+            }
+
+            val manifest = fetchJson(VERSION_URL) ?: return Result(webUrl, false)
+
+            val remoteWeb = manifest.optInt("webVersion", 0)
+            val expectedSha = manifest.optString("webBundleSha256", "").lowercase()
+            val storedSha = p.getString(KEY_WEB_SHA256, "")?.lowercase() ?: ""
+            val alreadyHaveBundle =
+                remoteWeb <= localWeb &&
+                    expectedSha.isNotBlank() &&
+                    expectedSha == storedSha &&
+                    indexOk
+
+            if (!alreadyHaveBundle && remoteWeb > localWeb) {
                 val bundleUrl = manifest.optString("webBundleUrl", "")
                 if (bundleUrl.isNotBlank()) {
-                    val expectedSha = manifest.optString("webBundleSha256", "").lowercase()
                     val ok = downloadWebBundle(ctx, bundleUrl, expectedSha, remoteWeb)
                     if (ok) {
                         webUpdated = true
@@ -78,12 +105,24 @@ object UpdateManager {
                         Log.i(TAG, "Web bundle updated to v$remoteWeb")
                     }
                 }
+            } else if (alreadyHaveBundle) {
+                Log.d(TAG, "Web bundle up to date (v$localWeb)")
             }
+
+            p.edit()
+                .putLong(KEY_LAST_CHECK_MS, now)
+                .putInt(KEY_LAST_REMOTE_WEB, remoteWeb)
+                .apply()
 
             val remoteApkCode = manifest.optInt("apkVersionCode", 0)
             val apkUrl = manifest.optString("apkUrl", "")
-            if (remoteApkCode > BuildConfig.VERSION_CODE && apkUrl.isNotBlank()) {
-                val f = downloadApk(ctx, apkUrl, manifest.optString("apkSha256", ""))
+            val apkSha = manifest.optString("apkSha256", "").trim()
+            if (
+                remoteApkCode > BuildConfig.VERSION_CODE &&
+                apkUrl.isNotBlank() &&
+                apkSha.isNotBlank()
+            ) {
+                val f = downloadApk(ctx, apkUrl, apkSha)
                 if (f != null) {
                     apkFile = f
                     apkName = manifest.optString("apkVersionName", "")
@@ -145,7 +184,10 @@ object UpdateManager {
             deleteRecursive(tmp)
         }
         cache.delete()
-        prefs(ctx).edit().putInt(KEY_WEB_VERSION, newVersion).apply()
+        prefs(ctx).edit()
+            .putInt(KEY_WEB_VERSION, newVersion)
+            .putString(KEY_WEB_SHA256, expectedSha256)
+            .apply()
         return true
     }
 

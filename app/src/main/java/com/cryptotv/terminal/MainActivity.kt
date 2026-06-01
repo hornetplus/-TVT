@@ -10,9 +10,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.app.Activity
 import android.widget.FrameLayout
-import android.widget.TextView
-import android.graphics.Color
-import android.view.Gravity
+import android.os.Process
 
 /**
  * Crypto TV Terminal — полноэкранный «киоск» для Android TV.
@@ -22,12 +20,11 @@ class MainActivity : Activity() {
 
     private lateinit var webView: WebView
     private lateinit var root: FrameLayout
-    private var loadingLabel: TextView? = null
-
-    /** Долгое нажатие «Назад» на пульте — выход из приложения. */
+    /** Долгое нажатие «Назад» (~1,2 с) — полное завершение процесса (не сворачивание). */
     private val backExitMs = 1200L
+    private var backPressedAt = 0L
     private val backHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private val backExitRunnable = Runnable { finishAffinity() }
+    private val backExitRunnable = Runnable { exitApplication() }
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,20 +35,6 @@ class MainActivity : Activity() {
         root = FrameLayout(this).apply {
             setBackgroundColor(0xFF04060B.toInt())
         }
-
-        loadingLabel = TextView(this).apply {
-            text = "Проверка обновлений…"
-            setTextColor(Color.parseColor("#2BE3F0"))
-            textSize = 18f
-            gravity = Gravity.CENTER
-        }
-        root.addView(
-            loadingLabel,
-            FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.MATCH_PARENT,
-                FrameLayout.LayoutParams.MATCH_PARENT,
-            ),
-        )
 
         webView = WebView(this).apply {
             with(settings) {
@@ -75,7 +58,6 @@ class MainActivity : Activity() {
             setBackgroundColor(0xFF04060B.toInt())
             isVerticalScrollBarEnabled = false
             isHorizontalScrollBarEnabled = false
-            visibility = View.GONE
         }
         root.addView(
             webView,
@@ -88,12 +70,14 @@ class MainActivity : Activity() {
         setContentView(root)
         enterImmersiveMode()
 
+        webView.loadUrl(UpdateManager.resolveWebUrl(applicationContext))
+
         Thread {
             val result = UpdateManager.checkAndApply(applicationContext)
             runOnUiThread {
-                loadingLabel?.visibility = View.GONE
-                webView.visibility = View.VISIBLE
-                webView.loadUrl(result.webUrl)
+                if (result.webUpdated) {
+                    webView.loadUrl(result.webUrl)
+                }
                 if (result.apkFile != null) {
                     UpdateManager.promptInstallApk(
                         this,
@@ -103,6 +87,15 @@ class MainActivity : Activity() {
                 }
             }
         }.start()
+    }
+
+    private fun exitApplication() {
+        backHandler.removeCallbacks(backExitRunnable)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            finishAndRemoveTask()
+        }
+        finishAffinity()
+        Process.killProcess(Process.myPid())
     }
 
     @Suppress("DEPRECATION")
@@ -131,8 +124,11 @@ class MainActivity : Activity() {
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK && event != null) {
             if (event.repeatCount == 0) {
+                backPressedAt = System.currentTimeMillis()
                 backHandler.removeCallbacks(backExitRunnable)
                 backHandler.postDelayed(backExitRunnable, backExitMs)
+            } else if (System.currentTimeMillis() - backPressedAt >= backExitMs) {
+                exitApplication()
             }
             return true
         }
@@ -141,7 +137,9 @@ class MainActivity : Activity() {
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK) {
+            val held = System.currentTimeMillis() - backPressedAt
             backHandler.removeCallbacks(backExitRunnable)
+            if (held >= backExitMs) exitApplication()
             return true
         }
         return super.onKeyUp(keyCode, event)

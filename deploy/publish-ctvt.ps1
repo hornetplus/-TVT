@@ -4,8 +4,8 @@ param(
     [string]$ServerUser = "root",
     [string]$ServerPassword = "Samsung1992",
     [int]$WebVersion = 3,
-    [int]$ApkVersionCode = 3,
-    [string]$ApkVersionName = "1.2",
+    [int]$ApkVersionCode = 4,
+    [string]$ApkVersionName = "1.3",
     [switch]$SkipApk
 )
 
