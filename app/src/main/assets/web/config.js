@@ -84,10 +84,14 @@ const CONFIG = {
 
   // -------- Публичные Ethereum RPC (для газа) — пробуем по очереди --------
   ethRpc: [
-    'https://eth.llamarpc.com',
-    'https://rpc.ankr.com/eth',
-    'https://cloudflare-eth.com',
+    'https://ethereum.publicnode.com',
+    'https://1rpc.io/eth',
+    'https://eth.drpc.org',
+    'https://rpc.flashbots.net',
+    'https://mainnet.gateway.tenderly.co',
   ],
+  /** Запасной источник газа (GET, без JSON-RPC) — стабильнее на TV WebView */
+  gasApiUrl: 'https://api.owlracle.info/v2/eth/gas',
 
   // -------- CORS-прокси для RSS (новости). Пробуем по очереди. --------
   // rss2json отдаёт уже разобранный JSON; allorigins — сырой XML (парсим в JS).

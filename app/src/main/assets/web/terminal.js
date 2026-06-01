@@ -261,15 +261,18 @@ function renderFunding() {
     </div>`;
   }).join('');
 }
+function fmtGasVal(v) {
+  return Number.isFinite(v) ? String(v) : '—';
+}
 function renderGas() {
   const g = INDICATORS.gas;
-  const main = $('#gas-val'); if (main) main.textContent = g.avg != null ? g.avg : '—';
+  const main = $('#gas-val'); if (main) main.textContent = fmtGasVal(g.avg);
   const usd = $('.gas-usd'); if (usd) usd.textContent = g.usd || '';
   const gv = $$('.gas-tier .gv');
   if (gv.length === 3) {
-    gv[0].textContent = g.low  != null ? g.low  : '—';
-    gv[1].textContent = g.avg  != null ? g.avg  : '—';
-    gv[2].textContent = g.high != null ? g.high : '—';
+    gv[0].textContent = fmtGasVal(g.low);
+    gv[1].textContent = fmtGasVal(g.avg);
+    gv[2].textContent = fmtGasVal(g.high);
   }
 }
 function renderLiquidations() {

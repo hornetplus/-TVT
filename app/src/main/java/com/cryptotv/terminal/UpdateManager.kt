@@ -34,7 +34,7 @@ object UpdateManager {
     private const val CHECK_COOLDOWN_MS = 6 * 60 * 60 * 1000L // без новой версии на сервере — не дергаем сеть
     private const val WEB_DIR = "ctvt-web"
     /** Версия web, вшитая в APK (assets/web). */
-    const val BUNDLED_WEB_VERSION = 6
+    const val BUNDLED_WEB_VERSION = 7
 
     data class Result(
         val webUrl: String,

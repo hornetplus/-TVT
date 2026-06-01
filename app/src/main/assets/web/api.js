@@ -143,30 +143,80 @@ async function rpc(method, params) {
   }
   throw new Error('eth rpc: all failed');
 }
-async function pollGas() {
+function gasGweiDisplay(n) {
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return n < 10 ? Math.round(n * 10) / 10 : Math.round(n);
+}
+
+function emitGas(low, avg, high) {
+  if (!Number.isFinite(avg) || avg <= 0) return;
+  const ethPrice = (lastMarkets.ETH && lastMarkets.ETH.priceUsd) || 0;
+  const usd = ethPrice ? (21000 * avg * 1e-9 * ethPrice) : null;
+  FEED.emit('gas', {
+    low: gasGweiDisplay(low),
+    avg: gasGweiDisplay(avg),
+    high: gasGweiDisplay(high),
+    usd: usd != null ? '$' + usd.toFixed(2) : null,
+  });
+}
+
+async function pollGasOwlracle() {
+  const url = (CONFIG.gasApiUrl) || 'https://api.owlracle.info/v2/eth/gas';
+  const d = await fetchJSON(url, {}, 10000);
+  const sp = d && d.speeds;
+  if (!Array.isArray(sp) || sp.length < 3) throw new Error('owlracle: bad shape');
+  const pick = (i) => parseFloat(sp[i] && sp[i].gasPrice);
+  const low = pick(0);
+  const avg = pick(1);
+  const high = pick(Math.min(2, sp.length - 1));
+  emitGas(low, avg, high);
+}
+
+async function pollGasRpc() {
   let low, avg, high;
   try {
     const r = await rpc('eth_feeHistory', ['0x5', 'latest', [10, 50, 90]]);
-    const baseArr = r.baseFeePerGas;
+    const baseArr = r && r.baseFeePerGas;
+    const rew = r && r.reward;
+    if (!Array.isArray(baseArr) || !baseArr.length || !Array.isArray(rew) || !rew.length) {
+      throw new Error('feeHistory empty');
+    }
     const base = parseInt(baseArr[baseArr.length - 1], 16);
-    const rew = r.reward;
-    const n = rew.length || 1;
-    const avgP = (i) => rew.reduce((s, a) => s + parseInt(a[i], 16), 0) / n;
+    const n = rew.length;
+    const avgP = (i) => {
+      let sum = 0;
+      let cnt = 0;
+      rew.forEach((row) => {
+        if (row && row[i] != null) {
+          sum += parseInt(row[i], 16);
+          cnt++;
+        }
+      });
+      return cnt ? sum / cnt : 0;
+    };
     low = (base + avgP(0)) / 1e9;
     avg = (base + avgP(1)) / 1e9;
     high = (base + avgP(2)) / 1e9;
   } catch (e) {
     const gp = parseInt(await rpc('eth_gasPrice', []), 16) / 1e9;
-    low = gp * 0.85; avg = gp; high = gp * 1.25;
+    if (!Number.isFinite(gp) || gp <= 0) throw e;
+    low = gp * 0.85;
+    avg = gp;
+    high = gp * 1.25;
   }
-  const ethPrice = (lastMarkets.ETH && lastMarkets.ETH.priceUsd) || 0;
-  const usd = ethPrice ? (21000 * avg * 1e-9 * ethPrice) : null; // стоимость обычного перевода
-  FEED.emit('gas', {
-    low: Math.max(1, Math.round(low)),
-    avg: Math.max(1, Math.round(avg)),
-    high: Math.max(1, Math.round(high)),
-    usd: usd != null ? '$' + usd.toFixed(2) : null,
-  });
+  emitGas(low, avg, high);
+}
+
+async function pollGas() {
+  try {
+    await pollGasOwlracle();
+    return;
+  } catch (e) { /* RPC */ }
+  try {
+    await pollGasRpc();
+  } catch (e) {
+    FEED.emit('status', { channel: 'gas', ok: false, err: String(e.message || e) });
+  }
 }
 
 /* ---------- 5. ФАНДИНГ (OKX → Bybit) ---------- */
