@@ -22,12 +22,17 @@ MARKER = (
 
 path = Path("/etc/nginx/conf.d/voice-notify.conf")
 text = path.read_text(encoding="utf-8")
-if "/ctvt/" in text:
-    print("ctvt location already present")
+count = text.count(BLOCK.strip())
+if count >= 2:
+    print("ctvt location already present in both blocks")
 else:
-    count = text.count(MARKER)
-    if count < 1:
-        raise SystemExit(f"marker found {count} times in HTTPS block")
-    text = text.replace(MARKER, MARKER.replace("    location / {", BLOCK + "    location / {"), 1)
+    n = text.count(MARKER)
+    if n < 1:
+        raise SystemExit(f"marker found {n} times")
+    text = text.replace(
+        MARKER,
+        MARKER.replace("    location / {", BLOCK + "    location / {"),
+        n,
+    )
     path.write_text(text, encoding="utf-8")
-    print("patched ctvt nginx")
+    print(f"patched ctvt nginx ({n} block(s))")
