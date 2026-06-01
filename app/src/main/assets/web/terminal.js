@@ -80,13 +80,13 @@ function miniSpark(vals, up) {
 /* =========================================================
    1. ЧАСЫ — реальное системное время устройства (§6.2, §3.3)
    ========================================================= */
-const MONTHS = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
-const DOW = ['воскресенье','понедельник','вторник','среда','четверг','пятница','суббота'];
 function tickClock() {
   const d = new Date();
   const p = (n) => String(n).padStart(2, '0');
+  const M = (window.I18N ? I18N.months() : ['','','','','','','','','','','','']);
+  const W = (window.I18N ? I18N.dow() : ['','','','','','','']);
   const hms = $('#clock-hms'); if (hms) hms.textContent = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
-  const dt = $('#clock-date'); if (dt) dt.innerHTML = `<b>${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}</b> · ${DOW[d.getDay()]}`;
+  const dt = $('#clock-date'); if (dt) dt.innerHTML = `<b>${d.getDate()} ${M[d.getMonth()]} ${d.getFullYear()}</b> · ${W[d.getDay()]}`;
 }
 tickClock();
 setInterval(tickClock, 1000);
@@ -174,6 +174,17 @@ function updateVisibleRows(bySym) {
 renderWatchlist();
 setInterval(rotateWatchlist, WATCHLIST_CFG.rotationIntervalSec * 1000);
 
+/* применить выбранные пользователем активы (из SETTINGS) к watchlist */
+function applyWatchlistSettings() {
+  if (!window.SETTINGS) return;
+  WATCHLIST_CFG.fixedAssets = SETTINGS.PINNED.slice();
+  const pool = SETTINGS.rotatingPool();
+  WATCHLIST_CFG.rotatingPool = pool.length ? pool : SETTINGS.PINNED.slice();
+  WATCHLIST_CFG.windowSize = Math.max(1, Math.min(6, WATCHLIST_CFG.rotatingPool.length));
+  rotIndex = 0;
+  renderWatchlist();
+}
+
 /* =========================================================
    3. HERO BTC/ETH (§11) — данные из FEED 'markets'
    ========================================================= */
@@ -204,9 +215,33 @@ function heroChart(h) {
     <circle cx="${g.last[0].toFixed(1)}" cy="${g.last[1].toFixed(1)}" r="4.5" fill="${col}"/>
   </svg>`;
 }
-function heroHtml(sym) {
-  const h = HERO_STATE[sym];
-  return `<section class="panel hero" data-sym="${sym}">
+function ensureHero(sym) {
+  if (!HERO_STATE[sym]) {
+    const meta = ASSETS[sym] || { name: sym, color: 'usdc', glyph: '$' };
+    HERO_STATE[sym] = { symbol: sym, name: meta.name, color: meta.color, glyph: meta.glyph,
+      priceUsd: 0, change24hPct: 0, change7dPct: 0, support: [0, 0], resistance: [0, 0], direction: 'up', sparkline: [] };
+  }
+  return HERO_STATE[sym];
+}
+function heroList() {
+  const arr = (window.SETTINGS ? SETTINGS.heroSymbols : ['BTC', 'ETH']).filter((s) => ASSETS[s]);
+  return arr.length ? arr : ['BTC'];
+}
+const T = (k, ...a) => (window.I18N ? I18N.t(k, ...a) : k);
+
+function heroAreaSpark(vals, up, w, h) {
+  const g = sparkGeo((vals && vals.length) ? vals : [0, 0], w, h, 4);
+  const col = up ? 'var(--up)' : 'var(--down)';
+  const gid = 'hc_' + Math.random().toString(36).slice(2, 7);
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${col}" stop-opacity=".3"/><stop offset="1" stop-color="${col}" stop-opacity="0"/></linearGradient></defs>
+    <path d="${g.area}" fill="url(#${gid})"/>
+    <path d="${g.line}" fill="none" stroke="${col}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+  </svg>`;
+}
+function heroFullHtml(sym, feature) {
+  const h = ensureHero(sym);
+  return `<section class="panel hero ${feature ? 'feature' : ''}" data-sym="${sym}">
     <div class="hero-top">
       ${coinIcon(h)}
       <div class="hero-id"><div class="tk">${sym}</div><div class="nm">${h.name}</div></div>
@@ -214,22 +249,50 @@ function heroHtml(sym) {
     </div>
     <div class="hero-price num">${fmtPrice(h.priceUsd)}</div>
     <div class="hero-chg">
-      <div class="grp"><span class="v num ${dirClass(h.change24hPct)}">${fmtPct(h.change24hPct)}</span><span class="t">24Ч</span></div>
-      <div class="grp"><span class="v num ${dirClass(h.change7dPct)}">${fmtPct(h.change7dPct)}</span><span class="t">7Д</span></div>
+      <div class="grp"><span class="v num ${dirClass(h.change24hPct)}">${fmtPct(h.change24hPct)}</span><span class="t">${T('h24')}</span></div>
+      <div class="grp"><span class="v num ${dirClass(h.change7dPct)}">${fmtPct(h.change7dPct)}</span><span class="t">${T('d7')}</span></div>
     </div>
     <div class="hero-chart">${heroChart(h)}</div>
     <div class="hero-levels">
-      <div><div class="lvl-label">Поддержка</div><div class="lvl-vals up num"><span>${fmtLevel(h.support[0])}</span><span>${fmtLevel(h.support[1])}</span></div></div>
-      <div><div class="lvl-label">Сопротивление</div><div class="lvl-vals down num"><span>${fmtLevel(h.resistance[0])}</span><span>${fmtLevel(h.resistance[1])}</span></div></div>
+      <div><div class="lvl-label">${T('support')}</div><div class="lvl-vals up num"><span>${fmtLevel(h.support[0])}</span><span>${fmtLevel(h.support[1])}</span></div></div>
+      <div><div class="lvl-label">${T('resistance')}</div><div class="lvl-vals down num"><span>${fmtLevel(h.resistance[0])}</span><span>${fmtLevel(h.resistance[1])}</span></div></div>
     </div>
   </section>`;
 }
-function renderHeroes() { const r = $('#hero-row'); if (r) r.innerHTML = heroHtml('BTC') + heroHtml('ETH'); }
+function heroCompactHtml(sym) {
+  const h = ensureHero(sym);
+  const up = h.change24hPct >= 0;
+  return `<section class="panel hero compact" data-sym="${sym}">
+    <div class="hc-top">${coinIcon(h)}<div class="hc-id"><div class="tk">${sym}</div><div class="nm">${h.name}</div></div></div>
+    <div class="hc-price num">${fmtPrice(h.priceUsd)}</div>
+    <div class="hc-chg">
+      <span class="v num ${dirClass(h.change24hPct)}">${fmtPct(h.change24hPct)}</span><span class="t">${T('h24')}</span>
+      <span class="v num ${dirClass(h.change7dPct)}">${fmtPct(h.change7dPct)}</span><span class="t">${T('d7')}</span>
+    </div>
+    <div class="hc-spark">${heroAreaSpark(h.sparkline, up, 300, 40)}</div>
+  </section>`;
+}
+function renderHeroes() {
+  const r = $('#hero-row'); if (!r) return;
+  const list = heroList();
+  const n = list.length;
+  r.setAttribute('data-count', String(n));
+  if (n <= 2) {
+    r.classList.remove('has-feature');
+    r.innerHTML = list.map((s) => heroFullHtml(s, false)).join('');
+  } else {
+    r.classList.add('has-feature');
+    const rest = list.slice(1);
+    const cols2 = rest.length > 3 ? 'cols2' : '';
+    r.innerHTML = heroFullHtml(list[0], true) +
+      `<div class="hero-rest ${cols2}">${rest.map(heroCompactHtml).join('')}</div>`;
+  }
+}
 function refreshHeroes(bySym) {
   renderHeroes();
-  ['BTC', 'ETH'].forEach((sym) => {
+  heroList().forEach((sym) => {
     if (!bySym[sym]) return;
-    const cur = HERO_STATE[sym].priceUsd;
+    const cur = HERO_STATE[sym] && HERO_STATE[sym].priceUsd;
     const prev = heroPrev[sym];
     if (prev != null && cur && cur !== prev && Date.now() - lastHeroFlash > 1000) {
       lastHeroFlash = Date.now();
@@ -281,12 +344,12 @@ function renderLiquidations() {
   const assetLbl = $('#liq-asset-label');
   if (assetLbl) assetLbl.textContent = asset;
   const title = $('#liq-title');
-  if (title) title.innerHTML = `Ликвидации <span class="liq-asset" id="liq-asset-label">${asset}</span> · 24ч`;
+  if (title) title.innerHTML = `${T('liquidations')} <span class="liq-asset" id="liq-asset-label">${asset}</span> · ${T('h24')}`;
   const total = $('.liq-total'); if (total) total.textContent = liq.total;
   const legs = $$('.liq-leg .num');
   if (legs[0]) legs[0].textContent = liq.longUsd;
   if (legs[1]) legs[1].textContent = liq.shortUsd;
-  const lbl = $('.liq-ring .lbl'); if (lbl) lbl.textContent = liq.longPct != null ? liq.longPct + '%' : 'н/д';
+  const lbl = $('.liq-ring .lbl'); if (lbl) lbl.textContent = liq.longPct != null ? liq.longPct + '%' : T('na');
   const arc = $('.liq-ring circle:last-of-type');
   const C = 238.8;
   if (arc) {
@@ -312,7 +375,8 @@ renderLiquidations();
 /* =========================================================
    5. ШАПКА: F&G, доминация, капитализация, альтсезон (§7.2)
    ========================================================= */
-const FG_RU = { 'Extreme Fear': 'Крайний страх', 'Fear': 'Страх', 'Neutral': 'Нейтрально', 'Greed': 'Жадность', 'Extreme Greed': 'Крайняя жадность' };
+let lastFng = null;
+let lastGlobal = null;
 function fgColor(v) { return v < 25 ? 'var(--down)' : v < 45 ? '#F0B23B' : v < 55 ? '#F0D43B' : 'var(--up)'; }
 function setGauge(arcId, numId, value, color) {
   const C = 119.4; // 2π·19
@@ -321,12 +385,14 @@ function setGauge(arcId, numId, value, color) {
   const num = document.getElementById(numId); if (num) num.textContent = Math.round(value);
 }
 function onFng(d) {
+  lastFng = d;
   const col = fgColor(d.value);
   setGauge('fg-arc', 'fg-num', d.value, col);
   const val = $('#fg-val'); if (val) val.textContent = d.value;
-  const word = $('#fg-word'); if (word) { word.textContent = FG_RU[d.label] || d.label; word.style.color = col; }
+  const word = $('#fg-word'); if (word) { word.textContent = T(d.label) || d.label; word.style.color = col; }
 }
 function onGlobal(d) {
+  lastGlobal = d;
   const dom = $('#dom-val'); if (dom) dom.innerHTML = d.btcDominance.toFixed(1) + '<small>%</small>';
   const cap = $('#cap-val'); if (cap) cap.textContent = (d.capUsd / 1e12).toFixed(2);
   const chg = $('#cap-chg'); if (chg) { chg.textContent = fmtPct(d.capChangePct); chg.className = dirClass(d.capChangePct); }
@@ -345,16 +411,14 @@ function computeAltseason(dominance) {
   if (lastDominance != null) idx = idx * 0.7 + (100 - lastDominance) * 0.6; // мягкая поправка
   idx = Math.max(0, Math.min(100, idx));
   setGauge('alt-arc', 'alt-num', idx, null);
-  const stat = document.getElementById('alt-gauge');
-  const label = stat && stat.closest('.stat') && stat.closest('.stat').querySelector('.stat-value');
-  if (label) label.textContent = idx >= 75 ? 'Альтсезон' : idx <= 35 ? 'Сезон BTC' : 'Смешанный';
+  const word = document.getElementById('alt-word');
+  if (word) word.textContent = idx >= 75 ? T('season_alt') : idx <= 35 ? T('season_btc') : T('season_mix');
 }
 
 /* =========================================================
    6. НОВОСТИ (§12) — данные из FEED 'news:item'
    ========================================================= */
 const NEWS_MAX = 5;
-const CAT_RU = { market: 'Маркет', defi: 'DeFi', exchange: 'Биржа', nft: 'NFT', btc: 'Биткоин' };
 let newsArchive = [];
 let newsDomSeq = 0;
 const newsIds = new Set();
@@ -367,7 +431,7 @@ function newsIsFresh(n) {
   return Date.now() - n.date.getTime() <= newsMaxAgeMs();
 }
 function pickPanelNews(items) {
-  const fresh = items.filter(newsIsFresh).sort((a, b) => b.date - a.date);
+  const fresh = items.filter((n) => newsIsFresh(n) && (!window.SETTINGS || SETTINGS.newsEnabled(n.source))).sort((a, b) => b.date - a.date);
   const out = [];
   const usedSrc = new Set();
   for (const n of fresh) {
@@ -396,7 +460,7 @@ function newsHtml(n) {
         <span class="news-time">${age}</span>
       </div>
       <div class="news-title">${n.title}</div>
-      <span class="news-tag tag-${n.cat}">${CAT_RU[n.cat] || 'Маркет'}</span>
+      <span class="news-tag tag-${n.cat}">${window.I18N ? I18N.cat(n.cat) : n.cat}</span>
     </div>
   </div>`;
 }
@@ -411,6 +475,7 @@ function renderNews() {
 }
 function onNews(n) {
   if (!n || !n.title || newsIds.has(n.id)) return;
+  if (window.SETTINGS && !SETTINGS.newsEnabled(n.source)) return;
   if (!(n.date instanceof Date) || isNaN(n.date.getTime())) {
     n.date = typeof parseNewsDate === 'function' ? parseNewsDate(n.date) : new Date();
   }
@@ -461,10 +526,15 @@ function whaleHtml(t, entering = false) {
     </div>
   </div>`;
 }
+function updateWhaleCount() {
+  const b = document.getElementById('whale-count');
+  if (b) b.textContent = String(whaleArchive.length);
+}
 function renderWhale() {
   const strip = $('#whale-strip'); if (!strip) return;
+  updateWhaleCount();
   if (!whaleCards.length) {
-    strip.innerHTML = '<div class="whale-empty">Загрузка крупных сделок с бирж…</div>';
+    strip.innerHTML = `<div class="whale-empty">${T('loading_tx')}</div>`;
     return;
   }
   strip.innerHTML = whaleCards.slice(0, WHALE_MAX).map((t, i) => whaleHtml(t, i === 0 && t._enter)).join('');
@@ -492,9 +562,9 @@ function onMarkets(bySym) {
     a.priceUsd = m.priceUsd; a.change24hPct = m.change24hPct; a.change7dPct = m.change7dPct;
     a.volumeUsd = m.volumeUsd; a.sparkline = m.sparkline || []; a.high24h = m.high24h; a.low24h = m.low24h;
   });
-  ['BTC', 'ETH'].forEach((sym) => {
+  heroList().forEach((sym) => {
     if (!bySym[sym]) return;
-    const m = bySym[sym], h = HERO_STATE[sym];
+    const m = bySym[sym], h = ensureHero(sym);
     h.priceUsd = m.priceUsd; h.change24hPct = m.change24hPct; h.change7dPct = m.change7dPct;
     h.sparkline = m.sparkline || []; h.high24h = m.high24h; h.low24h = m.low24h;
     computeLevels(h);
@@ -533,6 +603,7 @@ function closeOverlay() {
   ov.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('ctv-overlay-open');
 }
+window.closeOverlay = closeOverlay;
 
 function allAssetsHtml() {
   const syms = Object.keys(ASSET_STATE).filter((s) => s !== 'USDC');
@@ -548,29 +619,63 @@ function allAssetsHtml() {
   }).join('');
 }
 
-function allWhaleHtml() {
-  if (!whaleArchive.length) return '<div class="ov-tx-row" style="opacity:.5">Крупных сделок пока нет</div>';
-  return whaleArchive.map((t) => {
+/* ---- улучшенное окно «Все транзакции»: сводка + фильтры + таблица ---- */
+let txFilter = 'all';
+function parseUsd(str) {
+  if (!str) return 0;
+  const m = String(str).replace(/[, $]/g, '').match(/([\d.]+)\s*([KMB])?/i);
+  if (!m) return 0;
+  const n = parseFloat(m[1]) || 0;
+  const mult = { K: 1e3, M: 1e6, B: 1e9 }[(m[2] || '').toUpperCase()] || 1;
+  return n * mult;
+}
+const TX_IN_ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+const TX_OUT_ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>';
+function whaleTableHtml() {
+  let inU = 0, outU = 0;
+  whaleArchive.forEach((t) => { const v = parseUsd(t.usd); if (t.dir === 'in') inU += v; else outU += v; });
+  const net = inU - outU;
+  const summary = `<div class="txov-summary">
+    <div class="txov-sumcard"><div class="l">${T('sum_in')}</div><div class="v up num">${fmtVol(inU)}</div></div>
+    <div class="txov-sumcard"><div class="l">${T('sum_out')}</div><div class="v down num">${fmtVol(outU)}</div></div>
+    <div class="txov-sumcard"><div class="l">${T('sum_net')}</div><div class="v num ${net >= 0 ? 'up' : 'down'}">${(net >= 0 ? '+' : '-') + fmtVol(Math.abs(net)).replace('$', '$')}</div></div>
+  </div>`;
+  const filters = `<div class="txov-filters">
+    <button class="chip selector ${txFilter === 'all' ? 'active' : ''}" data-txf="all" tabindex="-1">${T('f_all')}</button>
+    <button class="chip selector ${txFilter === 'in' ? 'active' : ''}" data-txf="in" tabindex="-1">${TX_IN_ARROW}${T('f_in')}</button>
+    <button class="chip selector ${txFilter === 'out' ? 'active' : ''}" data-txf="out" tabindex="-1">${TX_OUT_ARROW}${T('f_out')}</button>
+  </div>`;
+  if (!whaleArchive.length) return summary + filters + `<div class="ov-tx-row" style="opacity:.5">${T('no_tx')}</div>`;
+  const rows = whaleArchive.filter((t) => txFilter === 'all' || t.dir === txFilter);
+  const thead = `<div class="txov-thead"><span>${T('tx_time')}</span><span>${T('tx_type')}</span><span>${T('tx_asset')}</span><span>${T('tx_amount')}</span><span>${T('tx_value')}</span><span>${T('tx_route')}</span></div>`;
+  const body = rows.map((t) => {
     const a = ASSET_STATE[t.asset] || { color: 'usdc', glyph: '$' };
     const age = (typeof relTime === 'function' && t.ts) ? relTime(new Date(t.ts)) : '';
-    return `<div class="ov-tx-row">
-      <div class="tx-dir ${t.dir}" style="width:40px;height:40px;border-radius:50%">${t.dir === 'in' ? '↓' : '↑'}</div>
-      <div class="tx-coin">${coinIcon(a, 'small')}<span class="tk">${t.asset}</span></div>
-      <div><div class="tx-amt ${t.dir === 'in' ? 'up' : 'down'}">${t.amount}</div><div class="tx-sub"><span class="tx-usd">${t.usd}</span><span class="tx-addr">${t.addr}</span></div></div>
-      <div class="tx-time">${age}</div>
+    return `<div class="txov-row" data-dir="${t.dir}">
+      <span class="txov-time num">${age}</span>
+      <span><span class="txov-pill ${t.dir}">${t.dir === 'in' ? TX_IN_ARROW : TX_OUT_ARROW}${t.dir === 'in' ? T('tx_in') : T('tx_out')}</span></span>
+      <span class="txov-asset">${coinIcon(a, 'small')}<span class="tk">${t.asset}</span></span>
+      <span class="txov-amt num ${t.dir === 'in' ? 'up' : 'down'}">${t.amount}</span>
+      <span class="txov-usd num">${t.usd}</span>
+      <span class="num" style="color:var(--ink-3);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.addr || ''}</span>
     </div>`;
   }).join('');
+  return summary + filters + `<div class="txov-table">${thead}${body}</div>`;
+}
+function openWhaleOverlay() {
+  txFilter = 'all';
+  openOverlay(T('whale'), whaleTableHtml());
 }
 
 function renderNewsOverlayPage() {
-  const items = newsArchive.filter(newsIsFresh).sort((a, b) => b.date - a.date);
+  const items = newsArchive.filter((n) => newsIsFresh(n) && (!window.SETTINGS || SETTINGS.newsEnabled(n.source))).sort((a, b) => b.date - a.date);
   const pages = Math.max(1, Math.ceil(items.length / OVERLAY_NEWS_PAGE));
   overlayNewsPage = Math.max(0, Math.min(overlayNewsPage, pages - 1));
   const slice = items.slice(overlayNewsPage * OVERLAY_NEWS_PAGE, overlayNewsPage * OVERLAY_NEWS_PAGE + OVERLAY_NEWS_PAGE);
   const html = slice.length
     ? slice.map((n) => newsHtml(n)).join('')
-    : '<div class="news-item" style="opacity:.5">Нет новостей за последние 5 часов</div>';
-  openOverlay('Новости · последний час', html, { paged: items.length > OVERLAY_NEWS_PAGE });
+    : `<div class="news-item" style="opacity:.5">${T('news_empty')}</div>`;
+  openOverlay(T('news_overlay'), html, { paged: items.length > OVERLAY_NEWS_PAGE });
   const pageEl = $('#ctv-overlay-page');
   if (pageEl) pageEl.textContent = items.length ? `${overlayNewsPage + 1} / ${pages}` : '—';
 }
@@ -583,16 +688,33 @@ function setWlMode(mode) {
   renderWatchlist();
 }
 
+function applyLanguage(lang) {
+  if (!window.I18N) return;
+  if (window.SETTINGS) SETTINGS.setLang(lang);
+  I18N.set(lang);
+  $$('#lang-switch .lang-opt').forEach((b) => b.classList.toggle('active', b.dataset.lang === lang));
+  tickClock();
+  renderWatchlist();
+  renderHeroes();
+  renderFunding();
+  renderGas();
+  renderLiquidations();
+  renderNews();
+  renderWhale();
+  if (lastFng) onFng(lastFng);
+  if (lastGlobal) onGlobal(lastGlobal); else computeAltseason();
+}
+
 function initTerminalUi() {
   $$('#wl-tabs .wl-tab').forEach((tab) => {
     tab.addEventListener('click', () => setWlMode(tab.dataset.wlMode || 'usd'));
   });
 
   const wlAll = $('#wl-all-btn');
-  if (wlAll) wlAll.addEventListener('click', () => openOverlay('Все активы', allAssetsHtml()));
+  if (wlAll) wlAll.addEventListener('click', () => openOverlay(T('all_assets'), allAssetsHtml()));
 
   const whaleAll = $('#whale-all-btn');
-  if (whaleAll) whaleAll.addEventListener('click', () => openOverlay('Крупные сделки', allWhaleHtml()));
+  if (whaleAll) whaleAll.addEventListener('click', openWhaleOverlay);
 
   const newsAll = $('#news-all-btn');
   if (newsAll) newsAll.addEventListener('click', () => { overlayNewsPage = 0; renderNewsOverlayPage(); });
@@ -605,11 +727,39 @@ function initTerminalUi() {
   if (ovPrev) ovPrev.addEventListener('click', () => { overlayNewsPage = Math.max(0, overlayNewsPage - 1); renderNewsOverlayPage(); });
   if (ovNext) ovNext.addEventListener('click', () => { overlayNewsPage += 1; renderNewsOverlayPage(); });
 
+  // фильтры внутри окна крупных сделок (делегирование)
+  const ovBody = $('#ctv-overlay-body');
+  if (ovBody) ovBody.addEventListener('click', (e) => {
+    const chip = e.target.closest('[data-txf]');
+    if (!chip) return;
+    txFilter = chip.dataset.txf;
+    ovBody.innerHTML = whaleTableHtml();
+  });
+
+  // переключатель языка
+  $$('#lang-switch .lang-opt').forEach((b) => {
+    b.addEventListener('click', () => applyLanguage(b.dataset.lang));
+  });
+
   document.addEventListener('keydown', (e) => {
     const ov = $('#ctv-overlay');
     if (!ov || ov.classList.contains('hidden')) return;
     if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'Back') closeOverlay();
   });
+
+  // хуки перерисовки для settings.js
+  window.CTV.applyHero = () => { renderHeroes(); };
+  window.CTV.applyWatchlist = () => { applyWatchlistSettings(); };
+  window.CTV.applyNews = () => { renderNews(); };
+
+  // настройки-попапы (шестерёнки + D-pad)
+  if (window.initSettings) initSettings();
+
+  // стартовое состояние из сохранённых настроек
+  if (window.SETTINGS) {
+    applyWatchlistSettings();
+    applyLanguage(SETTINGS.lang);
+  }
 }
 
 initTerminalUi();

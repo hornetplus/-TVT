@@ -558,3 +558,192 @@ html, body {
   height: 52px;
   font-size: 20px;
 }
+
+/* =========================================================
+   ДОБАВЛЕНО: язык, шестерёнки, тумблеры, настройки-попапы,
+   адаптивный hero, таблица крупных сделок, D-pad фокус.
+   ========================================================= */
+
+/* ---------- Переключатель языка (шапка) ---------- */
+.hdr-lang { display: flex; align-items: center; gap: var(--sp-3); padding-left: var(--sp-2); }
+.lang-switch {
+  display: inline-flex; align-items: center; padding: 3px; gap: 2px;
+  background: var(--inset); border: 1px solid var(--line); border-radius: var(--r-pill);
+}
+.lang-opt {
+  font-family: var(--font); font-size: 14px; font-weight: 800; letter-spacing: .04em;
+  color: var(--ink-3); background: none; border: none; cursor: pointer;
+  padding: 7px 14px; border-radius: var(--r-pill); transition: all .2s var(--ease);
+}
+.lang-opt.active { color: #04121a; background: linear-gradient(150deg, var(--cyan), var(--cyan-2)); box-shadow: 0 0 16px -5px var(--cyan-glow); }
+.lang-opt.focus, .lang-opt:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--cyan); }
+
+/* ---------- Шестерёнка панели ---------- */
+.panel-cog {
+  width: 38px; height: 38px; flex: none; border-radius: 10px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: var(--inset); border: 1px solid var(--line); color: var(--ink-2);
+  cursor: pointer; font-family: var(--font); transition: all .18s var(--ease);
+}
+.panel-cog svg { width: 20px; height: 20px; }
+.panel-cog:hover { color: var(--cyan); border-color: rgba(43,227,240,.4); }
+.panel-cog.focus, .panel-cog:focus-visible { outline: none; color: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 0 2px var(--cyan-dim); }
+.panel-head .head-tools { display: flex; align-items: center; gap: var(--sp-4); }
+
+/* ---------- Hero-бар (заголовок центра + шестерёнка) ---------- */
+.center-col { grid-template-rows: auto 1fr auto; }
+.hero-bar {
+  display: flex; align-items: center; gap: var(--sp-4);
+  padding: 0 var(--sp-2) 2px;
+}
+.hero-bar .hb-title {
+  font-size: 15px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-3);
+  display: flex; align-items: center; gap: var(--sp-3);
+}
+.hero-bar .hb-title .dot-ic { color: var(--cyan); display: flex; }
+.hero-bar .hb-title .dot-ic svg { width: 18px; height: 18px; }
+.hero-bar .spacer { flex: 1; }
+
+/* ---------- Адаптивная сетка hero ---------- */
+.hero-row[data-count="1"] { grid-template-columns: 1fr; }
+.hero-row[data-count="2"] { grid-template-columns: 1fr 1fr; }
+.hero-row.has-feature { grid-template-columns: 1.32fr 1fr; }
+.hero-row .hero-rest {
+  display: grid; gap: var(--sp-5); min-height: 0; min-width: 0;
+  grid-auto-rows: 1fr;
+}
+.hero-row .hero-rest.cols2 { grid-template-columns: 1fr 1fr; }
+
+/* компактная hero-карточка (для 3+ валют) */
+.hero.compact { padding: var(--sp-5); justify-content: space-between; }
+.hero.compact .hc-top { display: flex; align-items: center; gap: var(--sp-3); }
+.hero.compact .coin-ic { width: 40px; height: 40px; font-size: 16px; }
+.hero.compact .hc-id { line-height: 1.1; min-width: 0; }
+.hero.compact .hc-id .tk { font-size: 20px; font-weight: 800; }
+.hero.compact .hc-id .nm { font-size: 12px; font-weight: 600; color: var(--ink-3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hero.compact .hc-price { font-size: 30px; font-weight: 800; line-height: 1; margin-top: var(--sp-4); letter-spacing: -.01em; }
+.hero.compact .hc-chg { display: flex; align-items: baseline; gap: var(--sp-4); margin-top: 6px; }
+.hero.compact .hc-chg .v { font-size: 16px; font-weight: 800; }
+.hero.compact .hc-chg .t { font-size: 11px; font-weight: 700; color: var(--ink-3); }
+.hero.compact .hc-spark { height: 34px; margin-top: var(--sp-3); }
+.hero.compact .hc-spark svg { width: 100%; height: 100%; display: block; }
+/* в режиме 3+ у крупной карточки чуть компактнее цена, чтобы влезли уровни */
+.hero-row.has-feature .hero.feature .hero-price { font-size: 50px; }
+
+/* ---------- Тумблер ---------- */
+.tgl {
+  width: 52px; height: 30px; flex: none; border-radius: var(--r-pill);
+  background: var(--inset-2); border: 1px solid var(--line);
+  position: relative; transition: background .2s var(--ease), border-color .2s var(--ease);
+}
+.tgl .tgl-knob {
+  position: absolute; top: 50%; left: 3px; transform: translateY(-50%);
+  width: 22px; height: 22px; border-radius: 50%; background: var(--ink-3);
+  transition: left .2s var(--ease), background .2s var(--ease);
+  box-shadow: 0 1px 3px rgba(0,0,0,.5);
+}
+.tgl.on { background: rgba(31,217,138,.22); border-color: rgba(31,217,138,.55); }
+.tgl.on .tgl-knob { left: 27px; background: var(--up); box-shadow: 0 0 10px -1px var(--up-glow); }
+
+/* ---------- Настройки-попап (внутри #ctv-overlay) ---------- */
+.cfg { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.cfg-sub { font-size: 16px; font-weight: 600; color: var(--ink-2); margin-bottom: var(--sp-5); }
+.cfg-scroll { flex: 1; min-height: 0; overflow-y: auto; padding-right: var(--sp-3);
+  scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.14) transparent; }
+.cfg-scroll::-webkit-scrollbar { width: 10px; }
+.cfg-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 8px; }
+.cfg-list { display: flex; flex-direction: column; gap: var(--sp-3); }
+.cfg-list.cfg-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--sp-3); }
+.cfg-group-label { font-size: 13px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink-3); margin: var(--sp-5) 0 var(--sp-3); }
+
+.cfg-row {
+  display: grid; grid-template-columns: 44px 1fr auto auto; align-items: center; gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-5); border-radius: 14px;
+  background: var(--inset); border: 1.5px solid var(--line); cursor: pointer;
+  transition: border-color .18s var(--ease), background .18s var(--ease);
+}
+.cfg-row.sel { border-color: rgba(31,217,138,.4); background: rgba(31,217,138,.06); }
+.cfg-row.disabled { opacity: .4; cursor: default; }
+.cfg-row.locked { cursor: default; border-color: rgba(240,178,59,.35); }
+.cfg-row.focus, .cfg-row:focus-visible { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 2px var(--cyan-dim); }
+.cfg-row .coin-ic { width: 44px; height: 44px; font-size: 17px; }
+.cfg-row .cfg-av { width: 44px; height: 44px; border-radius: 12px; font-size: 18px; }
+.cfg-id { min-width: 0; }
+.cfg-id .tk { font-size: 19px; font-weight: 800; }
+.cfg-id .nm { font-size: 12px; font-weight: 600; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cfg-price { text-align: right; line-height: 1.2; display: flex; flex-direction: column; }
+.cfg-price .num { font-size: 15px; font-weight: 800; }
+.cfg-price .num.up { color: var(--up); font-size: 12px; }
+.cfg-price .num.down { color: var(--down); font-size: 12px; }
+.cfg-order { font-size: 12px; font-weight: 800; color: var(--cyan); min-width: 64px; text-align: right; text-transform: uppercase; letter-spacing: .04em; }
+.cfg-order.dim { color: transparent; }
+.cfg-star { width: 34px; height: 34px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--inset-2); border: 1px solid var(--line); color: var(--ink-3); cursor: pointer; }
+.cfg-star svg { width: 18px; height: 18px; }
+.cfg-star.on { color: var(--gold); border-color: rgba(240,178,59,.5); background: rgba(240,178,59,.12); }
+.cfg-star.focus, .cfg-star:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--cyan); }
+.cfg-star-spacer { width: 34px; }
+.cfg-pin { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--gold); text-transform: uppercase; letter-spacing: .04em; }
+.cfg-pin svg { width: 16px; height: 16px; }
+
+.cfg-quick { display: flex; gap: var(--sp-3); margin-bottom: var(--sp-4); }
+.chip {
+  display: inline-flex; align-items: center; gap: var(--sp-3); height: 46px; padding: 0 var(--sp-6);
+  border-radius: var(--r-pill); background: var(--inset); border: 1px solid var(--line);
+  color: var(--ink-2); font-family: var(--font); font-size: 15px; font-weight: 700; cursor: pointer;
+  transition: all .18s var(--ease);
+}
+.chip.active { background: var(--cyan-dim); border-color: rgba(43,227,240,.5); color: var(--cyan); }
+.chip.focus, .chip:focus-visible { outline: none; border-color: var(--cyan); box-shadow: 0 0 0 2px var(--cyan-dim); color: var(--ink-1); }
+.chip .badge { font-size: 13px; font-weight: 800; padding: 1px 8px; border-radius: var(--r-pill); background: rgba(255,255,255,.07); }
+
+.cfg-actions { display: flex; align-items: center; gap: var(--sp-4); margin-top: var(--sp-5);
+  padding-top: var(--sp-5); border-top: 1px solid var(--line); }
+.cfg-note { font-size: 15px; font-weight: 700; color: var(--ink-2); }
+.cfg-spacer { flex: 1; }
+.cfg-btn { width: auto; min-width: 140px; flex: none; }
+.cfg-apply { color: #04121a; background: linear-gradient(150deg, var(--cyan), var(--cyan-2)); border-color: transparent; }
+.cfg-apply.focus, .cfg-apply:focus-visible { box-shadow: 0 0 0 2px #04060B, 0 0 0 4px var(--cyan); }
+
+/* ---------- Кнопка «Все транзакции» (улучшенная) ---------- */
+.whale-foot {
+  gap: var(--sp-3);
+}
+.whale-foot .wf-ic { display: inline-flex; }
+.whale-foot .wf-ic svg { width: 16px; height: 16px; }
+.whale-foot .wf-badge {
+  font-size: 12px; font-weight: 800; padding: 2px 9px; border-radius: var(--r-pill);
+  background: var(--cyan-dim); color: var(--cyan); border: 1px solid rgba(43,227,240,.35);
+  letter-spacing: .02em; text-transform: none;
+}
+
+/* ---------- Таблица крупных сделок (overlay) ---------- */
+.txov-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-5); margin-bottom: var(--sp-5); flex: none; }
+.txov-sumcard { padding: var(--sp-4) var(--sp-6); border-radius: 16px; background: var(--inset); border: 1px solid var(--line); }
+.txov-sumcard .l { font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ink-3); }
+.txov-sumcard .v { font-size: 26px; font-weight: 800; margin-top: 5px; }
+.txov-filters { display: flex; gap: var(--sp-3); margin-bottom: var(--sp-4); flex: none; }
+.txov-table { display: flex; flex-direction: column; }
+.txov-thead, .txov-row {
+  display: grid; grid-template-columns: 96px 132px 150px 1.1fr 1fr 1.3fr; align-items: center; gap: var(--sp-5); padding: 0 var(--sp-5);
+}
+.txov-thead { height: 46px; font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--ink-3); border-bottom: 1px solid var(--line); position: sticky; top: 0; background: #0B1017; z-index: 1; }
+.txov-row { height: 70px; border-bottom: 1px solid var(--line-2); }
+.txov-row.is-new { background: var(--cyan-dim); }
+.txov-pill { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 13px; border-radius: var(--r-pill); font-size: 14px; font-weight: 800; }
+.txov-pill svg { width: 14px; height: 14px; }
+.txov-pill.in { background: rgba(31,217,138,.14); color: var(--up); }
+.txov-pill.out { background: rgba(255,77,106,.14); color: var(--down); }
+.txov-asset { display: flex; align-items: center; gap: var(--sp-3); }
+.txov-asset .coin-ic { width: 34px; height: 34px; font-size: 13px; }
+.txov-asset .tk { font-size: 17px; font-weight: 800; }
+.txov-amt { font-size: 18px; font-weight: 800; }
+.txov-usd { font-size: 17px; font-weight: 700; }
+.txov-time { font-size: 14px; font-weight: 700; color: var(--ink-3); }
+
+/* ---------- D-pad фокус для существующих .selector на табло ---------- */
+.selector:focus-visible { outline: none; }
+.wl-tab:focus-visible { color: var(--cyan); }
