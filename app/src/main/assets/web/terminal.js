@@ -396,7 +396,7 @@ function renderNews() {
   const list = $('#news-list'); if (!list) return;
   const panel = pickPanelNews(newsArchive);
   if (!panel.length) {
-    list.innerHTML = `<div class="news-item" style="opacity:.45"><div class="news-body"><div class="news-title">Свежих новостей пока нет (до 1 ч)…</div></div></div>`;
+    list.innerHTML = '';
     return;
   }
   list.innerHTML = panel.map(newsHtml).join('');
@@ -452,7 +452,10 @@ function whaleHtml(t, entering = false) {
 }
 function renderWhale() {
   const strip = $('#whale-strip'); if (!strip) return;
-  if (!whaleCards.length) { strip.innerHTML = `<div class="tx-card" style="opacity:.45;justify-content:center"><div class="tx-body"><div class="tx-amt">Ожидание крупных сделок…</div></div></div>`; return; }
+  if (!whaleCards.length) {
+    strip.innerHTML = '<div class="whale-empty">Загрузка крупных сделок с бирж…</div>';
+    return;
+  }
   strip.innerHTML = whaleCards.slice(0, WHALE_MAX).map((t, i) => whaleHtml(t, i === 0 && t._enter)).join('');
 }
 function onWhale(t) {
@@ -555,7 +558,7 @@ function renderNewsOverlayPage() {
   const slice = items.slice(overlayNewsPage * OVERLAY_NEWS_PAGE, overlayNewsPage * OVERLAY_NEWS_PAGE + OVERLAY_NEWS_PAGE);
   const html = slice.length
     ? slice.map((n) => `<div class="ov-news-row">${newsHtml(n)}</div>`).join('')
-    : '<div class="ov-news-row" style="opacity:.5">Нет новостей младше 1 часа</div>';
+    : '<div class="ov-news-row" style="opacity:.5">Нет новостей за последние 5 часов</div>';
   openOverlay('Новости · последний час', html, { paged: items.length > OVERLAY_NEWS_PAGE });
   const pageEl = $('#ctv-overlay-page');
   if (pageEl) pageEl.textContent = items.length ? `${overlayNewsPage + 1} / ${pages}` : '—';

@@ -207,17 +207,28 @@ function parseRss(xml) {
   return out;
 }
 
+function newsMaxAgeMs() {
+  return (CONFIG.news && CONFIG.news.maxAgeMs) || 5 * 3600000;
+}
+
+function parseNewsDate(raw) {
+  if (!raw) return new Date();
+  const d = raw instanceof Date ? raw : new Date(raw);
+  if (!isNaN(d.getTime())) return d;
+  return new Date();
+}
+
 function isNewsFresh(date) {
-  const maxAge = (CONFIG.news && CONFIG.news.maxAgeMs) || 3600000;
-  const d = date instanceof Date ? date : new Date(date || 0);
-  return Date.now() - d.getTime() <= maxAge;
+  const d = parseNewsDate(date);
+  if (isNaN(d.getTime())) return false;
+  return Date.now() - d.getTime() <= newsMaxAgeMs();
 }
 
 function ingestNews(items) {
   let added = 0;
   items.forEach((it) => {
     if (!it.title || newsSeen.has(it.id)) return;
-    const date = it.date instanceof Date ? it.date : new Date(it.date || Date.now());
+    const date = parseNewsDate(it.date);
     if (!isNewsFresh(date)) return;
     newsSeen.add(it.id);
     added++;
@@ -242,21 +253,32 @@ async function fetchFeed(src) {
       if (proxy.type === 'rss2json') {
         const d = await fetchJSON(proxy.build(src.url, CONFIG.keys.rss2json), {}, 15000);
         if (d && d.status === 'ok' && Array.isArray(d.items) && d.items.length) {
-          ingestNews(d.items.slice(0, 6).map((it) => ({
+          const added = ingestNews(d.items.slice(0, 8).map((it) => ({
             id: src.name + ':' + (it.guid || it.link || it.title),
             title: cleanText(it.title), source: src.name, glyph: src.glyph, color: src.color,
-            date: it.pubDate ? new Date(it.pubDate) : new Date(),
+            date: parseNewsDate(it.pubDate),
           })));
-          return true;
+          if (added) return true;
+        }
+      } else if (proxy.type === 'allorigins-get') {
+        const d = await fetchJSON(proxy.build(src.url), {}, 15000);
+        const xml = d && (d.contents || d.content);
+        if (xml) {
+          const parsed = parseRss(xml).slice(0, 8).map((it) => ({
+            id: src.name + ':' + (it.link || it.title),
+            title: cleanText(it.title), source: src.name, glyph: src.glyph, color: src.color,
+            date: parseNewsDate(it.date),
+          }));
+          if (parsed.length && ingestNews(parsed)) return true;
         }
       } else {
         const xml = await fetchText(proxy.build(src.url), 15000);
-        const parsed = parseRss(xml).slice(0, 6).map((it) => ({
+        const parsed = parseRss(xml).slice(0, 8).map((it) => ({
           id: src.name + ':' + (it.link || it.title),
           title: cleanText(it.title), source: src.name, glyph: src.glyph, color: src.color,
-          date: it.date ? new Date(it.date) : new Date(),
+          date: parseNewsDate(it.date),
         }));
-        if (parsed.length) { ingestNews(parsed); return true; }
+        if (parsed.length && ingestNews(parsed)) return true;
       }
     } catch (e) { /* следующий прокси */ }
   }
@@ -281,45 +303,140 @@ async function pollNews() {
       }
     } catch (e) { /* откат к RSS */ }
   }
-  // RSS: по 3 источника за опрос, по кругу
   const srcs = CONFIG.newsSources;
-  await Promise.allSettled([0, 1, 2].map(() => fetchFeed(srcs[(newsIdx++) % srcs.length])));
+  const n = (CONFIG.news && CONFIG.news.sourcesPerPoll) || 8;
+  await Promise.allSettled(
+    Array.from({ length: n }, () => fetchFeed(srcs[(newsIdx++) % srcs.length]))
+  );
   newsBootstrapped = true;
 }
 
-/* ---------- 7. КРУПНЫЕ СДЕЛКИ (биржевой поток OKX) ---------- */
+/* ---------- 7. КРУПНЫЕ СДЕЛКИ (Binance → OKX → Bybit) ---------- */
 let whaleSeen = new Set();
+
+function emitWhaleTrade(p, trade) {
+  const key = trade.source + ':' + trade.id;
+  if (whaleSeen.has(key)) return;
+  whaleSeen.add(key);
+  FEED.emit('whale', {
+    asset: p.sym,
+    dir: trade.side === 'buy' ? 'in' : 'out',
+    amount: (trade.side === 'buy' ? '+' : '-') + fmtQty(trade.sz) + ' ' + p.sym,
+    usd: '$' + fmtUsdShort(trade.usd),
+    addr: trade.source + ' · спот',
+    ts: trade.ts,
+  });
+}
+
+function emitWhaleHits(p, hits) {
+  hits.sort((a, b) => b.usd - a.usd);
+  let n = 0;
+  hits.slice(0, 4).forEach((h) => {
+    emitWhaleTrade(p, h);
+    n++;
+  });
+  return n;
+}
+
+async function whaleFromBinance(p) {
+  const d = await fetchJSON(
+    `https://api.binance.com/api/v3/aggTrades?symbol=${p.binance}&limit=200`,
+    {},
+    10000
+  );
+  if (!Array.isArray(d)) return 0;
+  const cutoff = Date.now() - 300000;
+  const hits = [];
+  for (const t of d) {
+    const px = parseFloat(t.p);
+    const sz = parseFloat(t.q);
+    const usd = px * sz;
+    const ts = +t.T;
+    if (usd < p.minUsd || ts < cutoff) continue;
+    hits.push({
+      id: 'bn' + t.a,
+      side: t.m ? 'sell' : 'buy',
+      sz,
+      usd,
+      ts,
+      source: 'Binance',
+    });
+  }
+  return emitWhaleHits(p, hits);
+}
+
+async function whaleFromOkx(p) {
+  const d = await fetchJSON(
+    `https://www.okx.com/api/v5/market/trades?instId=${p.okx}&limit=80`,
+    {},
+    10000
+  );
+  const arr = d && d.data;
+  if (!Array.isArray(arr)) return 0;
+  const cutoff = Date.now() - 120000;
+  const hits = [];
+  for (const t of arr) {
+    const px = parseFloat(t.px);
+    const sz = parseFloat(t.sz);
+    const usd = px * sz;
+    const ts = +t.ts;
+    if (usd < p.minUsd || ts < cutoff) continue;
+    hits.push({
+      id: String(t.tradeId),
+      side: t.side === 'buy' ? 'buy' : 'sell',
+      sz,
+      usd,
+      ts,
+      source: 'OKX',
+    });
+  }
+  return emitWhaleHits(p, hits);
+}
+
+async function whaleFromBybit(p) {
+  const d = await fetchJSON(
+    `https://api.bybit.com/v5/market/recent-trade?category=spot&symbol=${p.bybit}&limit=80`,
+    {},
+    10000
+  );
+  const arr = d && d.result && d.result.list;
+  if (!Array.isArray(arr)) return 0;
+  const cutoff = Date.now() - 120000;
+  const hits = [];
+  for (const t of arr) {
+    const px = parseFloat(t.p);
+    const sz = parseFloat(t.v);
+    const usd = px * sz;
+    const ts = +(t.T || t.time || 0);
+    if (usd < p.minUsd || ts < cutoff) continue;
+    const side = (t.S || t.side || '').toLowerCase() === 'buy' ? 'buy' : 'sell';
+    hits.push({
+      id: String(t.i || t.execId || t.T + t.p),
+      side,
+      sz,
+      usd,
+      ts,
+      source: 'Bybit',
+    });
+  }
+  return emitWhaleHits(p, hits);
+}
+
 async function pollWhale() {
+  let total = 0;
   for (const p of CONFIG.whale.pairs) {
-    try {
-      const d = await fetchJSON(`https://www.okx.com/api/v5/market/trades?instId=${p.okx}&limit=60`, {}, 10000);
-      const arr = d && d.data;
-      if (!Array.isArray(arr)) continue;
-      const fresh = [];
-      for (const t of arr) {
-        const px = parseFloat(t.px), sz = parseFloat(t.sz);
-        const usd = px * sz;
-        const key = p.okx + ':' + t.tradeId;
-        if (usd >= p.minUsd && !whaleSeen.has(key)) {
-          whaleSeen.add(key);
-          fresh.push({ t, px, sz, usd });
-        }
-      }
-      // эмитим от старых к новым, чтобы самый свежий встал первым на ленте
-      fresh.sort((a, b) => (+a.t.ts) - (+b.t.ts));
-      fresh.forEach(({ t, sz, usd }) => {
-        FEED.emit('whale', {
-          asset: p.sym,
-          dir: t.side === 'buy' ? 'in' : 'out',
-          amount: (t.side === 'buy' ? '+' : '-') + fmtQty(sz) + ' ' + p.sym,
-          usd: '$' + fmtUsdShort(usd),
-          addr: 'OKX · спот',
-          ts: +t.ts,
-        });
-      });
-    } catch (e) { /* пропускаем пару */ }
+    let got = 0;
+    try { got = await whaleFromBinance(p); } catch (e) { /* next */ }
+    if (!got) {
+      try { got = await whaleFromOkx(p); } catch (e) { /* next */ }
+    }
+    if (!got) {
+      try { got = await whaleFromBybit(p); } catch (e) { /* next */ }
+    }
+    total += got;
   }
   if (whaleSeen.size > 3000) whaleSeen = new Set([...whaleSeen].slice(-1500));
+  FEED.emit('status', { channel: 'whale', ok: total > 0, count: total });
 }
 
 /* ---------- 8. ЛИКВИДАЦИИ (Coinalyze) — BTC, ETH, TON, SOL по очереди ---------- */
@@ -405,8 +522,13 @@ function startPolling() {
     setTimeout(() => {
       runSafe(fn, label);
       setInterval(() => runSafe(fn, label), ms);
-    }, idx * 500); // разносим стартовые запросы
+    }, idx * 500);
   });
+  // Новости и киты — дополнительный быстрый старт
+  setTimeout(() => runSafe(pollNews, 'news'), 800);
+  setTimeout(() => runSafe(pollNews, 'news'), 8000);
+  setTimeout(() => runSafe(pollWhale, 'whale'), 1200);
+  setTimeout(() => runSafe(pollWhale, 'whale'), 6000);
 }
 
 if (document.readyState === 'loading') {

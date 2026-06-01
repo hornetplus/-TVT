@@ -27,11 +27,12 @@ const CONFIG = {
     },
   },
 
-  // -------- Новости: только свежие на панели --------
+  // -------- Новости: на панели до 5 ч, затем замена более свежими --------
   news: {
-    maxAgeMs: 3600000, // 1 час
+    maxAgeMs: 5 * 3600000, // 5 часов
     panelMax: 5,
-    archiveMax: 60,
+    archiveMax: 80,
+    sourcesPerPoll: 8,
   },
 
   // -------- Интервалы опроса (мс) --------
@@ -41,8 +42,8 @@ const CONFIG = {
     fng:      300000,   // индекс страха и жадности (обновляется раз в сутки)
     gas:       30000,   // газ Ethereum (публичный RPC)
     funding:   60000,   // ставки фандинга (биржа)
-    news:      90000,   // опрос новостей (ротация источников)
-    whale:      8000,   // крупные сделки (биржевые сделки выше порога)
+    news:      60000,   // опрос новостей (ротация источников)
+    whale:      5000,   // крупные сделки (биржи по очереди)
     liquidations: 6000, // Coinalyze: по одной монете за тик (BTC/ETH/TON/SOL)
   },
 
@@ -64,10 +65,10 @@ const CONFIG = {
   // -------- Крупные сделки: пары и пороги (USD) для биржевого потока --------
   whale: {
     pairs: [
-      { sym: 'BTC', okx: 'BTC-USDT', minUsd: 750000 },
-      { sym: 'ETH', okx: 'ETH-USDT', minUsd: 400000 },
-      { sym: 'SOL', okx: 'SOL-USDT', minUsd: 250000 },
-      { sym: 'TON', okx: 'TON-USDT', minUsd: 200000 },
+      { sym: 'BTC', binance: 'BTCUSDT', okx: 'BTC-USDT', bybit: 'BTCUSDT', minUsd: 25000 },
+      { sym: 'ETH', binance: 'ETHUSDT', okx: 'ETH-USDT', bybit: 'ETHUSDT', minUsd: 12000 },
+      { sym: 'SOL', binance: 'SOLUSDT', okx: 'SOL-USDT', bybit: 'SOLUSDT', minUsd: 8000 },
+      { sym: 'TON', binance: 'TONUSDT', okx: 'TON-USDT', bybit: 'TONUSDT', minUsd: 6000 },
     ],
     archiveMax: 80,
   },
@@ -84,6 +85,8 @@ const CONFIG = {
   rssProxies: [
     { type: 'rss2json',   build: (u, key) => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(u)}${key ? '&api_key=' + key : ''}` },
     { type: 'allorigins', build: (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}` },
+    { type: 'allorigins-get', build: (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}` },
+    { type: 'corsproxy',  build: (u) => `https://corsproxy.io/?${encodeURIComponent(u)}` },
   ],
 
   // =========================================================

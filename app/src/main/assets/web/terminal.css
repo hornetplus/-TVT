@@ -396,6 +396,7 @@ html, body {
 }
 .news-link.focus { background: var(--cyan-dim); box-shadow: 0 0 0 1px rgba(43,227,240,.35); }
 .news-list { flex: 1; display: flex; flex-direction: column; padding: var(--sp-3); gap: var(--sp-3); min-height: 0; overflow: hidden; }
+.news-list:empty { min-height: 0; }
 .news-item {
   flex: 1; min-height: 0;
   display: grid; grid-template-columns: 48px 1fr; gap: var(--sp-4);
@@ -441,7 +442,11 @@ html, body {
    ========================================================= */
 #whale { display: flex; flex-direction: column; padding: var(--sp-5) 0 var(--sp-4); }
 .whale-head { display: flex; align-items: center; justify-content: space-between; padding: 0 var(--sp-7) var(--sp-4); }
-.whale-strip { flex: 1; display: flex; gap: var(--sp-5); padding: 0 var(--sp-7); overflow: hidden; align-items: stretch; }
+.whale-strip { flex: 1; display: flex; gap: var(--sp-5); padding: 0 var(--sp-7); overflow: hidden; align-items: stretch; min-height: 72px; }
+.whale-empty {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  padding: var(--sp-5); font-size: 15px; font-weight: 600; color: var(--ink-3); opacity: 0.55;
+}
 .tx-card {
   flex: 1 1 0; min-width: 0;
   display: grid; grid-template-columns: 44px auto 1fr; gap: var(--sp-4); align-items: center;
