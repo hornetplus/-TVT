@@ -207,10 +207,18 @@ function parseRss(xml) {
   return out;
 }
 
+function isNewsFresh(date) {
+  const maxAge = (CONFIG.news && CONFIG.news.maxAgeMs) || 3600000;
+  const d = date instanceof Date ? date : new Date(date || 0);
+  return Date.now() - d.getTime() <= maxAge;
+}
+
 function ingestNews(items) {
   let added = 0;
   items.forEach((it) => {
     if (!it.title || newsSeen.has(it.id)) return;
+    const date = it.date instanceof Date ? it.date : new Date(it.date || Date.now());
+    if (!isNewsFresh(date)) return;
     newsSeen.add(it.id);
     added++;
     FEED.emit('news:item', {
@@ -220,7 +228,7 @@ function ingestNews(items) {
       glyph: it.glyph || (it.source ? it.source[0].toUpperCase() : '•'),
       color: it.color || '#2BE3F0',
       cat: categorize(it.title),
-      date: it.date instanceof Date ? it.date : new Date(it.date || Date.now()),
+      date,
       isNew: newsBootstrapped, // первая загрузка — без вспышки; далее — подсветка нового
     });
   });
@@ -314,6 +322,66 @@ async function pollWhale() {
   if (whaleSeen.size > 3000) whaleSeen = new Set([...whaleSeen].slice(-1500));
 }
 
+/* ---------- 8. ЛИКВИДАЦИИ (Coinalyze) — BTC, ETH, TON, SOL по очереди ---------- */
+const liqByAsset = {};
+const liqLastPoll = {};
+let liqRot = 0;
+
+function aggregateLiquidations() {
+  let longUsd = 0;
+  let shortUsd = 0;
+  Object.values(liqByAsset).forEach((v) => {
+    longUsd += v.longUsd || 0;
+    shortUsd += v.shortUsd || 0;
+  });
+  const total = longUsd + shortUsd;
+  if (!total) return null;
+  return {
+    totalUsd: total,
+    longUsd,
+    shortUsd,
+    longPct: Math.round((longUsd / total) * 100),
+    assets: { ...liqByAsset },
+  };
+}
+
+async function pollLiquidations() {
+  const cfg = CONFIG.coinalyze;
+  if (!cfg || !cfg.apiKey) return;
+  const keys = Object.keys(cfg.symbols || {});
+  if (!keys.length) return;
+
+  const asset = keys[liqRot % keys.length];
+  liqRot += 1;
+  const minGap = cfg.minMsPerSymbol || 6000;
+  const last = liqLastPoll[asset] || 0;
+  if (Date.now() - last < minGap) return;
+  liqLastPoll[asset] = Date.now();
+
+  const symbol = cfg.symbols[asset];
+  const to = Math.floor(Date.now() / 1000);
+  const from = to - 86400;
+  const url =
+    'https://api.coinalyze.net/v1/liquidation-history' +
+    `?symbols=${encodeURIComponent(symbol)}` +
+    `&interval=${encodeURIComponent(cfg.interval || '1hour')}` +
+    `&from=${from}&to=${to}&convert_to_usd=true` +
+    `&api_key=${encodeURIComponent(cfg.apiKey)}`;
+
+  const data = await fetchJSON(url, {}, 15000);
+  if (!Array.isArray(data) || !data.length) throw new Error('liquidations: bad shape');
+
+  let longUsd = 0;
+  let shortUsd = 0;
+  (data[0].history || []).forEach((h) => {
+    longUsd += Number(h.l) || 0;
+    shortUsd += Number(h.s) || 0;
+  });
+  liqByAsset[asset] = { longUsd, shortUsd, symbol };
+  const agg = aggregateLiquidations();
+  if (agg) FEED.emit('liquidations', agg);
+}
+
 /* ---------- планировщик ---------- */
 function runSafe(fn, label) {
   return Promise.resolve().then(fn).catch((e) => {
@@ -331,6 +399,7 @@ function startPolling() {
     ['funding', pollFunding, I.funding],
     ['news', pollNews, I.news],
     ['whale', pollWhale, I.whale],
+    ['liquidations', pollLiquidations, I.liquidations || 6000],
   ];
   jobs.forEach(([label, fn, ms], idx) => {
     setTimeout(() => {

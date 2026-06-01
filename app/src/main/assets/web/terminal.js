@@ -43,6 +43,13 @@ function fmtPrice(v) {
   return '—';
 }
 function fmtPct(v) { if (v == null || isNaN(v)) return '—'; return (v >= 0 ? '+' : '') + v.toFixed(2) + '%'; }
+function fmtVol(v) {
+  if (v == null || isNaN(v) || !v) return '—';
+  if (v >= 1e9) return '$' + (v / 1e9).toFixed(2) + 'B';
+  if (v >= 1e6) return '$' + (v / 1e6).toFixed(2) + 'M';
+  if (v >= 1e3) return '$' + (v / 1e3).toFixed(1) + 'K';
+  return '$' + Math.round(v).toLocaleString('en-US');
+}
 function fmtLevel(v) { return v ? '$' + Math.round(v).toLocaleString('en-US') : '—'; }
 const dirClass = (v) => (v == null ? '' : v >= 0 ? 'up' : 'down');
 
@@ -89,6 +96,7 @@ setInterval(tickClock, 1000);
    ========================================================= */
 const prevPrice = {};
 let rotIndex = 0;
+let wlMode = 'usd';
 function currentWindow() {
   const pool = WATCHLIST_CFG.rotatingPool;
   const n = WATCHLIST_CFG.windowSize;
@@ -96,17 +104,34 @@ function currentWindow() {
   for (let i = 0; i < n; i++) out.push(pool[(rotIndex * n + i) % pool.length]);
   return out;
 }
+function rowPriceBlock(a) {
+  const up = a.change24hPct >= 0;
+  if (wlMode === 'vol') {
+    return `<div class="wl-price">
+      <div class="p num">${fmtVol(a.volumeUsd)}</div>
+      <div class="chg num ${dirClass(a.change24hPct)}">${fmtPct(a.change24hPct)}</div>
+    </div>`;
+  }
+  if (wlMode === 'pct') {
+    return `<div class="wl-price">
+      <div class="p num ${dirClass(a.change24hPct)}">${fmtPct(a.change24hPct)}</div>
+      <div class="chg num" style="color:var(--ink-3)">${fmtPrice(a.priceUsd)}</div>
+    </div>`;
+  }
+  return `<div class="wl-price">
+    <div class="p num">${fmtPrice(a.priceUsd)}</div>
+    <div class="chg num ${dirClass(a.change24hPct)}">${fmtPct(a.change24hPct)}</div>
+  </div>`;
+}
 function rowHtml(sym) {
   const a = ASSET_STATE[sym];
   const up = a.change24hPct >= 0;
+  const spark = wlMode === 'vol' ? '' : miniSpark(a.sparkline.length ? a.sparkline : [0, 0], up);
   return `<div class="wl-row" data-sym="${sym}">
     ${coinIcon(a)}
     <div class="wl-name"><div class="tk">${sym}</div><div class="nm">${a.name}</div></div>
-    <div class="wl-price">
-      <div class="p num">${fmtPrice(a.priceUsd)}</div>
-      <div class="chg num ${dirClass(a.change24hPct)}">${fmtPct(a.change24hPct)}</div>
-    </div>
-    ${miniSpark(a.sparkline.length ? a.sparkline : [0, 0], up)}
+    ${rowPriceBlock(a)}
+    ${spark}
   </div>`;
 }
 function renderWatchlist() {
@@ -130,12 +155,13 @@ function updateVisibleRows(bySym) {
     if (!bySym[sym]) return;
     const a = ASSET_STATE[sym];
     const up = a.change24hPct >= 0;
-    row.querySelector('.p').textContent = fmtPrice(a.priceUsd);
-    const chg = row.querySelector('.chg');
-    chg.textContent = fmtPct(a.change24hPct);
-    chg.className = 'chg num ' + dirClass(a.change24hPct);
+    const priceWrap = row.querySelector('.wl-price');
+    if (priceWrap) priceWrap.outerHTML = rowPriceBlock(a);
     const sp = row.querySelector('.spark');
-    if (sp) sp.outerHTML = miniSpark(a.sparkline.length ? a.sparkline : [a.priceUsd || 0], up);
+    if (wlMode === 'vol' && sp) sp.remove();
+    else if (wlMode !== 'vol' && !sp) {
+      row.insertAdjacentHTML('beforeend', miniSpark(a.sparkline.length ? a.sparkline : [a.priceUsd || 0], up));
+    } else if (sp) sp.outerHTML = miniSpark(a.sparkline.length ? a.sparkline : [a.priceUsd || 0], up);
     const prev = prevPrice[sym];
     if (prev != null && a.priceUsd && a.priceUsd !== prev) {
       const dir = a.priceUsd > prev ? 'up' : 'down';
@@ -248,9 +274,6 @@ function renderGas() {
   }
 }
 function renderLiquidations() {
-  // Реальных бесплатных данных по ликвидациям нет (нужен платный CoinGlass).
-  // Поэтому НЕ выдумываем числа: показываем «—»/«н/д». С ключом в config.js
-  // (keys.coinglass) этот блок можно наполнить реальными значениями.
   const liq = INDICATORS.liquidations;
   const total = $('.liq-total'); if (total) total.textContent = liq.total;
   const legs = $$('.liq-leg .num');
@@ -258,7 +281,21 @@ function renderLiquidations() {
   if (legs[1]) legs[1].textContent = liq.shortUsd;
   const lbl = $('.liq-ring .lbl'); if (lbl) lbl.textContent = liq.longPct != null ? liq.longPct + '%' : 'н/д';
   const arc = $('.liq-ring circle:last-of-type');
-  if (arc && liq.longPct == null) arc.setAttribute('stroke-dashoffset', '238.8'); // пустое кольцо
+  const C = 238.8;
+  if (arc) {
+    if (liq.longPct == null) arc.setAttribute('stroke-dashoffset', String(C));
+    else arc.setAttribute('stroke-dashoffset', (C * (1 - Math.max(0, Math.min(100, liq.longPct)) / 100)).toFixed(1));
+  }
+}
+function onLiquidations(d) {
+  if (!d || !d.totalUsd) return;
+  INDICATORS.liquidations = {
+    total: fmtVol(d.totalUsd),
+    longUsd: fmtVol(d.longUsd),
+    shortUsd: fmtVol(d.shortUsd),
+    longPct: d.longPct,
+  };
+  renderLiquidations();
 }
 renderFunding();
 renderGas();
@@ -310,9 +347,36 @@ function computeAltseason(dominance) {
    ========================================================= */
 const NEWS_MAX = 5;
 const CAT_RU = { market: 'Маркет', defi: 'DeFi', exchange: 'Биржа', nft: 'NFT', btc: 'Биткоин' };
-let newsItems = [];
+let newsArchive = [];
 let newsDomSeq = 0;
 const newsIds = new Set();
+
+function newsMaxAgeMs() {
+  return (CONFIG.news && CONFIG.news.maxAgeMs) || 3600000;
+}
+function newsIsFresh(n) {
+  if (!n || !n.date) return false;
+  return Date.now() - n.date.getTime() <= newsMaxAgeMs();
+}
+function pickPanelNews(items) {
+  const fresh = items.filter(newsIsFresh).sort((a, b) => b.date - a.date);
+  const out = [];
+  const usedSrc = new Set();
+  for (const n of fresh) {
+    if (usedSrc.has(n.source)) continue;
+    usedSrc.add(n.source);
+    out.push(n);
+    if (out.length >= NEWS_MAX) break;
+  }
+  if (out.length < NEWS_MAX) {
+    for (const n of fresh) {
+      if (out.some((x) => x.id === n.id)) continue;
+      out.push(n);
+      if (out.length >= NEWS_MAX) break;
+    }
+  }
+  return out;
+}
 function newsHtml(n) {
   const age = (typeof relTime === 'function' && n.date) ? relTime(n.date) : 'сейчас';
   return `<div class="news-item ${n.isNew ? 'is-new' : ''}" data-id="${n._domId}">
@@ -330,15 +394,21 @@ function newsHtml(n) {
 }
 function renderNews() {
   const list = $('#news-list'); if (!list) return;
-  if (!newsItems.length) { list.innerHTML = `<div class="news-item" style="opacity:.45"><div class="news-body"><div class="news-title">Загрузка новостей…</div></div></div>`; return; }
-  list.innerHTML = newsItems.slice(0, NEWS_MAX).map(newsHtml).join('');
+  const panel = pickPanelNews(newsArchive);
+  if (!panel.length) {
+    list.innerHTML = `<div class="news-item" style="opacity:.45"><div class="news-body"><div class="news-title">Свежих новостей пока нет (до 1 ч)…</div></div></div>`;
+    return;
+  }
+  list.innerHTML = panel.map(newsHtml).join('');
 }
 function onNews(n) {
   if (!n || !n.title || newsIds.has(n.id)) return;
+  if (!newsIsFresh(n)) return;
   newsIds.add(n.id);
   n._domId = ++newsDomSeq;
-  newsItems.unshift(n);
-  newsItems = newsItems.slice(0, NEWS_MAX + 3);
+  newsArchive.unshift(n);
+  const cap = (CONFIG.news && CONFIG.news.archiveMax) || 60;
+  newsArchive = newsArchive.filter(newsIsFresh).slice(0, cap);
   renderNews();
   if (n.isNew) {
     const el = $(`#news-list .news-item[data-id="${n._domId}"]`);
@@ -352,13 +422,19 @@ function onNews(n) {
   if (newsIds.size > 5000) newsIds.clear();
 }
 renderNews();
-setInterval(() => { if (newsItems.length) renderNews(); }, 30000); // освежаем «сейчас → N мин»
+setInterval(() => {
+  const before = newsArchive.length;
+  newsArchive = newsArchive.filter(newsIsFresh);
+  if (newsArchive.length !== before) renderNews();
+  else if (newsArchive.length) renderNews();
+}, 30000);
 
 /* =========================================================
    7. ЛЕНТА КРУПНЫХ СДЕЛОК (§13) — данные из FEED 'whale'
    ========================================================= */
 const WHALE_MAX = 5;
 let whaleCards = [];
+let whaleArchive = [];
 function whaleHtml(t, entering = false) {
   const a = ASSET_STATE[t.asset] || { color: 'usdc', glyph: '$' };
   const age = (typeof relTime === 'function' && t.ts) ? relTime(new Date(t.ts)) : 'сейчас';
@@ -381,6 +457,9 @@ function renderWhale() {
 }
 function onWhale(t) {
   if (!t) return;
+  whaleArchive.unshift({ ...t });
+  const cap = (CONFIG.whale && CONFIG.whale.archiveMax) || 80;
+  whaleArchive = whaleArchive.slice(0, cap);
   whaleCards.unshift({ ...t, _enter: true });
   whaleCards.forEach((c, i) => { if (i > 0) c._enter = false; });
   whaleCards = whaleCards.slice(0, WHALE_MAX);
@@ -411,12 +490,123 @@ function onMarkets(bySym) {
   computeAltseason();
 }
 
+/* =========================================================
+   9. ОВЕРЛЕИ: все активы / сделки / новости
+   ========================================================= */
+let overlayNewsPage = 0;
+const OVERLAY_NEWS_PAGE = 8;
+
+function openOverlay(title, html, opts) {
+  const ov = $('#ctv-overlay');
+  const body = $('#ctv-overlay-body');
+  const ttl = $('#ctv-overlay-title');
+  const nav = $('#ctv-overlay-nav');
+  if (!ov || !body || !ttl) return;
+  ttl.textContent = title;
+  body.innerHTML = html;
+  if (nav) nav.classList.toggle('hidden', !(opts && opts.paged));
+  ov.classList.remove('hidden');
+  ov.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('ctv-overlay-open');
+  const back = $('#ctv-overlay-back');
+  if (back) back.focus();
+}
+
+function closeOverlay() {
+  const ov = $('#ctv-overlay');
+  if (!ov) return;
+  ov.classList.add('hidden');
+  ov.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('ctv-overlay-open');
+}
+
+function allAssetsHtml() {
+  const syms = Object.keys(ASSET_STATE).filter((s) => s !== 'USDC');
+  syms.sort((a, b) => (ASSET_STATE[b].volumeUsd || 0) - (ASSET_STATE[a].volumeUsd || 0));
+  return syms.map((sym) => {
+    const a = ASSET_STATE[sym];
+    return `<div class="ov-wl-row">
+      ${coinIcon(a, 'small')}
+      <div class="wl-name"><div class="tk">${sym}</div><div class="nm">${a.name}</div></div>
+      <div class="wl-price"><div class="p num">${fmtPrice(a.priceUsd)}</div><div class="chg num ${dirClass(a.change24hPct)}">${fmtPct(a.change24hPct)}</div></div>
+      <div class="num" style="font-size:14px;font-weight:800;color:var(--ink-2)">${fmtVol(a.volumeUsd)}</div>
+    </div>`;
+  }).join('');
+}
+
+function allWhaleHtml() {
+  if (!whaleArchive.length) return '<div class="ov-tx-row" style="opacity:.5">Крупных сделок пока нет</div>';
+  return whaleArchive.map((t) => {
+    const a = ASSET_STATE[t.asset] || { color: 'usdc', glyph: '$' };
+    const age = (typeof relTime === 'function' && t.ts) ? relTime(new Date(t.ts)) : '';
+    return `<div class="ov-tx-row">
+      <div class="tx-dir ${t.dir}" style="width:40px;height:40px;border-radius:50%">${t.dir === 'in' ? '↓' : '↑'}</div>
+      <div class="tx-coin">${coinIcon(a, 'small')}<span class="tk">${t.asset}</span></div>
+      <div><div class="tx-amt ${t.dir === 'in' ? 'up' : 'down'}">${t.amount}</div><div class="tx-sub"><span class="tx-usd">${t.usd}</span><span class="tx-addr">${t.addr}</span></div></div>
+      <div class="tx-time">${age}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderNewsOverlayPage() {
+  const items = newsArchive.filter(newsIsFresh).sort((a, b) => b.date - a.date);
+  const pages = Math.max(1, Math.ceil(items.length / OVERLAY_NEWS_PAGE));
+  overlayNewsPage = Math.max(0, Math.min(overlayNewsPage, pages - 1));
+  const slice = items.slice(overlayNewsPage * OVERLAY_NEWS_PAGE, overlayNewsPage * OVERLAY_NEWS_PAGE + OVERLAY_NEWS_PAGE);
+  const html = slice.length
+    ? slice.map((n) => `<div class="ov-news-row">${newsHtml(n)}</div>`).join('')
+    : '<div class="ov-news-row" style="opacity:.5">Нет новостей младше 1 часа</div>';
+  openOverlay('Новости · последний час', html, { paged: items.length > OVERLAY_NEWS_PAGE });
+  const pageEl = $('#ctv-overlay-page');
+  if (pageEl) pageEl.textContent = items.length ? `${overlayNewsPage + 1} / ${pages}` : '—';
+}
+
+function setWlMode(mode) {
+  wlMode = mode;
+  $$('#wl-tabs .wl-tab').forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.wlMode === mode);
+  });
+  renderWatchlist();
+}
+
+function initTerminalUi() {
+  $$('#wl-tabs .wl-tab').forEach((tab) => {
+    tab.addEventListener('click', () => setWlMode(tab.dataset.wlMode || 'usd'));
+  });
+
+  const wlAll = $('#wl-all-btn');
+  if (wlAll) wlAll.addEventListener('click', () => openOverlay('Все активы', allAssetsHtml()));
+
+  const whaleAll = $('#whale-all-btn');
+  if (whaleAll) whaleAll.addEventListener('click', () => openOverlay('Крупные сделки', allWhaleHtml()));
+
+  const newsAll = $('#news-all-btn');
+  if (newsAll) newsAll.addEventListener('click', () => { overlayNewsPage = 0; renderNewsOverlayPage(); });
+
+  const ovBack = $('#ctv-overlay-back');
+  if (ovBack) ovBack.addEventListener('click', closeOverlay);
+
+  const ovPrev = $('#ctv-overlay-prev');
+  const ovNext = $('#ctv-overlay-next');
+  if (ovPrev) ovPrev.addEventListener('click', () => { overlayNewsPage = Math.max(0, overlayNewsPage - 1); renderNewsOverlayPage(); });
+  if (ovNext) ovNext.addEventListener('click', () => { overlayNewsPage += 1; renderNewsOverlayPage(); });
+
+  document.addEventListener('keydown', (e) => {
+    const ov = $('#ctv-overlay');
+    if (!ov || ov.classList.contains('hidden')) return;
+    if (e.key === 'Escape' || e.key === 'Backspace' || e.key === 'Back') closeOverlay();
+  });
+}
+
+initTerminalUi();
+
 if (window.FEED) {
   FEED.on('markets', onMarkets);
   FEED.on('global', onGlobal);
   FEED.on('fng', onFng);
   FEED.on('funding', (arr) => { if (Array.isArray(arr)) { INDICATORS.funding = arr.map((f) => ({ sym: f.sym, val: f.val })); renderFunding(); } });
   FEED.on('gas', (g) => { INDICATORS.gas = { value: g.avg, low: g.low, avg: g.avg, high: g.high, usd: g.usd }; renderGas(); });
+  FEED.on('liquidations', onLiquidations);
   FEED.on('news:item', onNews);
   FEED.on('whale', onWhale);
 }

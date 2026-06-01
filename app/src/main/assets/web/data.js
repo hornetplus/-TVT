@@ -59,7 +59,7 @@ const MARKET = {
   altseason: 0,
 };
 
-// индикаторы (ТЗ §7.8). funding/gas наполняются реально; liquidations требует платного провайдера → «н/д»
+// индикаторы (ТЗ §7.8). funding/gas/liquidations наполняются из api.js (Coinalyze)
 const INDICATORS = {
   liquidations: { total: '—', longUsd: '—', shortUsd: '—', longPct: null },
   funding: [

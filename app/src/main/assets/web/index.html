@@ -103,15 +103,15 @@
         <section class="panel" id="watchlist">
           <div class="panel-head">
             <div class="panel-title">Обзор рынка</div>
-            <div class="wl-tabs">
-              <span class="wl-tab active">USD</span>
-              <span class="wl-tab">24Ч %</span>
-              <span class="wl-tab">Объём</span>
+            <div class="wl-tabs" id="wl-tabs">
+              <button type="button" class="wl-tab active selector" data-wl-mode="usd">USD</button>
+              <button type="button" class="wl-tab selector" data-wl-mode="pct">24Ч %</button>
+              <button type="button" class="wl-tab selector" data-wl-mode="vol">Объём</button>
             </div>
           </div>
           <div class="wl-rows" id="wl-rows"></div>
           <div class="wl-foot">
-            <button class="btn-ghost">
+            <button type="button" class="btn-ghost selector" id="wl-all-btn">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
               Все активы
             </button>
@@ -131,10 +131,10 @@
             </div>
             <div class="liq-body">
               <div>
-                <div class="liq-total num">$285.47M</div>
+                <div class="liq-total num">—</div>
                 <div class="liq-legend">
-                  <div class="liq-leg"><span class="k">Лонг</span> <span class="up num">$195.21M</span></div>
-                  <div class="liq-leg"><span class="k">Шорт</span> <span class="down num">$90.26M</span></div>
+                  <div class="liq-leg"><span class="k">Лонг</span> <span class="up num">—</span></div>
+                  <div class="liq-leg"><span class="k">Шорт</span> <span class="down num">—</span></div>
                 </div>
               </div>
               <div class="liq-ring">
@@ -142,7 +142,7 @@
                   <circle cx="46" cy="46" r="38" fill="none" stroke="var(--down)" stroke-width="9"/>
                   <circle cx="46" cy="46" r="38" fill="none" stroke="var(--up)" stroke-width="9" stroke-linecap="round" stroke-dasharray="238.8" stroke-dashoffset="76.4"/>
                 </svg>
-                <div class="lbl num">68%</div>
+                <div class="lbl num">н/д</div>
               </div>
             </div>
           </section>
@@ -178,7 +178,7 @@
               <span class="dot-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8M15 18h-5M10 6h8v4h-8z"/></svg></span>
               Новости
             </div>
-            <span class="news-link">Все</span>
+            <button type="button" class="news-link selector" id="news-all-btn">Все</button>
           </div>
           <div class="news-list" id="news-list"></div>
         </section>
@@ -195,12 +195,27 @@
         <span class="news-link">в реальном времени</span>
       </div>
       <div class="whale-strip" id="whale-strip"></div>
-      <div class="whale-foot">
+      <button type="button" class="whale-foot selector" id="whale-all-btn">
         Все транзакции
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-      </div>
+      </button>
     </section>
 
+  </div>
+</div>
+
+<div id="ctv-overlay" class="ctv-overlay hidden" aria-hidden="true">
+  <div class="ctv-overlay__panel panel">
+    <div class="ctv-overlay__head">
+      <div class="ctv-overlay__title" id="ctv-overlay-title"></div>
+      <button type="button" class="btn-ghost selector ctv-overlay__back" id="ctv-overlay-back">← Назад в терминал</button>
+    </div>
+    <div class="ctv-overlay__body" id="ctv-overlay-body"></div>
+    <div class="ctv-overlay__nav hidden" id="ctv-overlay-nav">
+      <button type="button" class="btn-ghost selector" id="ctv-overlay-prev">← Назад</button>
+      <span class="ctv-overlay__page num" id="ctv-overlay-page"></span>
+      <button type="button" class="btn-ghost selector" id="ctv-overlay-next">Вперёд →</button>
+    </div>
   </div>
 </div>
 

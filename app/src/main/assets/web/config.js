@@ -11,7 +11,27 @@ const CONFIG = {
     coingeckoDemo: '',   // x-cg-demo-api-key (бесплатный demo-ключ CoinGecko, 100 req/min). Пусто = публичный режим.
     cryptopanic:   '',   // токен cryptopanic.com/developers/api/keys → агрегатор новостей из сотен источников
     rss2json:      '',   // api.rss2json.com (бесплатный ключ повышает лимит). Пусто = публичный лимит.
-    coinglass:     '',   // нужен для РЕАЛЬНЫХ ликвидаций (платный). Пусто = виджет покажет «н/д».
+    coinglass:     '',   // legacy, не используется
+  },
+
+  // -------- Ликвидации (Coinalyze) — лимит 40 вызовов/мин, 1 символ = 1 вызов --------
+  coinalyze: {
+    apiKey: 'b8b2169a-d7fe-48cf-8d86-7c7bc4d33c2b',
+    interval: '1hour',
+    minMsPerSymbol: 6000, // ≤10 запросов/мин на одну монету
+    symbols: {
+      BTC: 'BTCUSDT_PERP.A',
+      ETH: 'ETHUSDT_PERP.A',
+      TON: 'TONUSDT_PERP.A',
+      SOL: 'SOLUSDT_PERP.A',
+    },
+  },
+
+  // -------- Новости: только свежие на панели --------
+  news: {
+    maxAgeMs: 3600000, // 1 час
+    panelMax: 5,
+    archiveMax: 60,
   },
 
   // -------- Интервалы опроса (мс) --------
@@ -23,6 +43,7 @@ const CONFIG = {
     funding:   60000,   // ставки фандинга (биржа)
     news:      90000,   // опрос новостей (ротация источников)
     whale:      8000,   // крупные сделки (биржевые сделки выше порога)
+    liquidations: 6000, // Coinalyze: по одной монете за тик (BTC/ETH/TON/SOL)
   },
 
   // -------- Сопоставление тикер → id CoinGecko --------
@@ -46,8 +67,9 @@ const CONFIG = {
       { sym: 'BTC', okx: 'BTC-USDT', minUsd: 750000 },
       { sym: 'ETH', okx: 'ETH-USDT', minUsd: 400000 },
       { sym: 'SOL', okx: 'SOL-USDT', minUsd: 250000 },
-      { sym: 'XRP', okx: 'XRP-USDT', minUsd: 250000 },
+      { sym: 'TON', okx: 'TON-USDT', minUsd: 200000 },
     ],
+    archiveMax: 80,
   },
 
   // -------- Публичные Ethereum RPC (для газа) — пробуем по очереди --------
