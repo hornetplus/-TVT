@@ -28,7 +28,15 @@ $newsPath = Join-Path $PSScriptRoot "news.json"
 $buildNews = Join-Path $PSScriptRoot "build-ctvt-news.py"
 if (Test-Path $buildNews) {
     python $buildNews
-    if (-not (Test-Path $newsPath)) { Write-Warning "news.json not built, bundle skipped" }
+    if (-not (Test-Path $newsPath)) {
+        Write-Warning "news.json not built, bundle skipped"
+    } else {
+        $newsCount = (Get-Content $newsPath -Raw | ConvertFrom-Json).items.Count
+        if ($newsCount -lt 3) {
+            Write-Warning "news.json has only $newsCount items, not uploading empty bundle"
+            Remove-Item $newsPath -Force -ErrorAction SilentlyContinue
+        }
+    }
 }
 
 $manifest = @{

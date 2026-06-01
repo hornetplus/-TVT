@@ -96,10 +96,9 @@ const CONFIG = {
   // -------- CORS-прокси для RSS (новости). Пробуем по очереди. --------
   // rss2json отдаёт уже разобранный JSON; allorigins — сырой XML (парсим в JS).
   rssProxies: [
-    { type: 'rss2json',   build: (u, key) => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(u)}${key ? '&api_key=' + key : ''}` },
     { type: 'allorigins', build: (u) => `https://api.allorigins.win/raw?url=${encodeURIComponent(u)}` },
     { type: 'allorigins-get', build: (u) => `https://api.allorigins.win/get?url=${encodeURIComponent(u)}` },
-    { type: 'corsproxy',  build: (u) => `https://corsproxy.io/?${encodeURIComponent(u)}` },
+    { type: 'rss2json',   build: (u, key) => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(u)}${key ? '&api_key=' + key : ''}` },
   ],
 
   // =========================================================

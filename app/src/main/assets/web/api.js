@@ -291,12 +291,15 @@ function isNewsFresh(date) {
   return Date.now() - d.getTime() <= newsMaxAgeMs();
 }
 
-function ingestNews(items) {
+function ingestNews(items, opts) {
+  const relaxed = opts && opts.relaxed;
+  const maxMs = relaxed ? 24 * 3600000 : newsMaxAgeMs();
   let added = 0;
   items.forEach((it) => {
     if (!it.title || newsSeen.has(it.id)) return;
     const date = parseNewsDate(it.date);
-    if (!isNewsFresh(date)) return;
+    if (isNaN(date.getTime())) return;
+    if (Date.now() - date.getTime() > maxMs) return;
     newsSeen.add(it.id);
     added++;
     FEED.emit('news:item', {
@@ -355,16 +358,18 @@ async function fetchFeed(src) {
 async function pollNewsBundle() {
   const url = (CONFIG.news && CONFIG.news.bundleUrl) || 'https://jjkkll.top/ctvt/news.json';
   try {
-    const d = await fetchJSON(url, {}, 12000);
+    const d = await fetchJSON(url + (url.includes('?') ? '&' : '?') + '_=' + Date.now(), {}, 15000);
     const items = (d && d.items) || (Array.isArray(d) ? d : []);
-    if (items.length && ingestNews(items.map((it) => ({
+    if (!items.length) return false;
+    const mapped = items.map((it) => ({
       id: it.id || ('bundle:' + (it.link || it.title)),
       title: cleanText(it.title),
       source: it.source || 'CTVT',
       glyph: it.glyph,
       color: it.color || '#2BE3F0',
-      date: parseNewsDate(it.date || it.pubDate),
-    })))) return true;
+      date: it.date || it.pubDate,
+    }));
+    return ingestNews(mapped, { relaxed: true }) > 0;
   } catch (e) { /* fallback */ }
   return false;
 }
@@ -377,8 +382,10 @@ async function pollNewsRssBurst() {
 }
 
 async function pollNews() {
-  if (await pollNewsBundle()) {
+  const fromBundle = await pollNewsBundle();
+  if (fromBundle) {
     newsBootstrapped = true;
+    FEED.emit('status', { channel: 'news', ok: true, source: 'bundle' });
     return;
   }
   if (await pollNewsRssBurst()) {
