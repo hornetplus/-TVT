@@ -56,6 +56,29 @@ gradle wrapper --gradle-version 8.9
 
 ---
 
+## 🔄 OTA-обновления (без переустановки APK)
+
+При каждом запуске приложение запрашивает `https://jjkkll.top/ctvt/version.json`:
+
+| Поле | Назначение |
+|------|------------|
+| `webVersion` | Версия web-табло (HTML/JS/CSS). Если выше локальной — скачивается `web-bundle.zip` |
+| `webBundleUrl` / `webBundleSha256` | Архив интерфейса и логики |
+| `apkVersionCode` / `apkUrl` | Полное обновление APK (только если код оболочки изменился) |
+
+**Публикация правок только в табло** (Coinalyze, кнопки, новости и т.д.):
+
+```powershell
+# из корня репозитория, после правок в app/src/main/assets/web/
+powershell -File deploy\publish-ctvt.ps1 -WebVersion 4
+```
+
+Увеличивайте `webVersion` на 1 при каждой выкладке. APK на TV пересобирать не нужно.
+
+**Первая установка / смена нативной оболочки:** соберите APK, залейте на `https://jjkkll.top/CTVT.apk` и обновите `apkVersionCode` в `version.json` через тот же скрипт.
+
+---
+
 ## 📺 Установка на телевизор
 
 **Через ADB по сети (Android TV / Google TV):**

@@ -9,44 +9,50 @@ import android.view.WindowManager
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.app.Activity
+import android.widget.FrameLayout
+import android.widget.TextView
+import android.graphics.Color
+import android.view.Gravity
 
 /**
  * Crypto TV Terminal — полноэкранный «киоск» для Android TV.
- *
- * Активити поднимает один WebView во весь экран и грузит локально упакованное
- * табло (assets/web/index.html). Весь UI, анимации и mock-данные живут в
- * вебе — это и есть тот «внешний слой», что был собран в дизайне; здесь —
- * нативная обёртка, которая делает из него постоянно работающее TV-приложение.
- *
- * Что обеспечивает обёртка (см. ТЗ §3, §19):
- *  - экран не гаснет (FLAG_KEEP_SCREEN_ON) — табло работает 24/7;
- *  - иммерсивный полноэкранный режим без системных панелей;
- *  - landscape (также зафиксирован в манифесте);
- *  - локальная загрузка из assets → работает офлайн, без зависимости от сети;
- *  - кнопка BACK не закрывает приложение случайно с пульта (kiosk).
- *
- * Время берётся самим вебом через системный `new Date()`, поэтому реагирует на
- * смену времени/таймзоны устройства без перезапуска (ТЗ §3.3, §19.1).
+ * При старте проверяет OTA (web-bundle / APK) на jjkkll.top, затем грузит табло.
  */
 class MainActivity : Activity() {
 
     private lateinit var webView: WebView
+    private lateinit var root: FrameLayout
+    private var loadingLabel: TextView? = null
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Экран не должен засыпать — это информационное табло.
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        root = FrameLayout(this).apply {
+            setBackgroundColor(0xFF04060B.toInt())
+        }
+
+        loadingLabel = TextView(this).apply {
+            text = "Проверка обновлений…"
+            setTextColor(Color.parseColor("#2BE3F0"))
+            textSize = 18f
+            gravity = Gravity.CENTER
+        }
+        root.addView(
+            loadingLabel,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            ),
+        )
 
         webView = WebView(this).apply {
             with(settings) {
-                javaScriptEnabled = true            // нужно для логики/анимаций табло
+                javaScriptEnabled = true
                 domStorageEnabled = true
                 databaseEnabled = true
-                // ВАЖНО: масштабированием занимается сам макет (JS fitStage).
-                // Поэтому WebView НЕ должен дополнительно зумить страницу —
-                // иначе верстка не вписывается в экран (двойное масштабирование).
                 useWideViewPort = false
                 loadWithOverviewMode = false
                 builtInZoomControls = false
@@ -54,30 +60,46 @@ class MainActivity : Activity() {
                 setSupportZoom(false)
                 cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
                 mediaPlaybackRequiresUserGesture = false
-                // Разрешаем странице из assets (file://) ходить в сеть к API/вебсокетам.
-                // Это безопасно: WebView грузит только нашу собственную страницу.
                 allowFileAccess = true
                 allowContentAccess = true
                 @Suppress("DEPRECATION") allowFileAccessFromFileURLs = true
                 @Suppress("DEPRECATION") allowUniversalAccessFromFileURLs = true
                 mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
             }
-            // Без внешних переходов: всё рендерится внутри одного WebView.
             webViewClient = WebViewClient()
-            // Чёрный фон под леттербоксом дизайна (#04060B), пока идёт первый кадр.
             setBackgroundColor(0xFF04060B.toInt())
             isVerticalScrollBarEnabled = false
             isHorizontalScrollBarEnabled = false
+            visibility = View.GONE
         }
+        root.addView(
+            webView,
+            FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT,
+            ),
+        )
 
-        setContentView(webView)
+        setContentView(root)
         enterImmersiveMode()
 
-        // Локально упакованное табло. Никакой сети не требуется.
-        webView.loadUrl("file:///android_asset/web/index.html")
+        Thread {
+            val result = UpdateManager.checkAndApply(applicationContext)
+            runOnUiThread {
+                loadingLabel?.visibility = View.GONE
+                webView.visibility = View.VISIBLE
+                webView.loadUrl(result.webUrl)
+                if (result.apkFile != null) {
+                    UpdateManager.promptInstallApk(
+                        this,
+                        result.apkFile,
+                        result.apkVersionName,
+                    )
+                }
+            }
+        }.start()
     }
 
-    /** Прячем статус-бар и навигацию, держим полноэкранный режим. */
     @Suppress("DEPRECATION")
     private fun enterImmersiveMode() {
         window.decorView.systemUiVisibility = (
@@ -101,10 +123,6 @@ class MainActivity : Activity() {
         if (hasFocus) enterImmersiveMode()
     }
 
-    /**
-     * Глотаем BACK, чтобы табло нельзя было случайно закрыть пультом.
-     * Если для отладки нужно обычное поведение — удалите этот метод.
-     */
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK) return true
         return super.onKeyDown(keyCode, event)
@@ -114,13 +132,6 @@ class MainActivity : Activity() {
         super.onResume()
         webView.onResume()
         webView.resumeTimers()
-    }
-
-    override fun onPause() {
-        super.onPause()
-        // Для информационного табло обычно держим его «живым» в фоне; если
-        // хотите экономить ресурсы при сворачивании — раскомментируйте:
-        // webView.onPause()
     }
 
     override fun onDestroy() {
