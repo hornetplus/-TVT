@@ -4,8 +4,8 @@ param(
     [string]$ServerUser = "root",
     [string]$ServerPassword = "Samsung1992",
     [int]$WebVersion = 3,
-    [int]$ApkVersionCode = 5,
-    [string]$ApkVersionName = "1.4",
+    [int]$ApkVersionCode = 6,
+    [string]$ApkVersionName = "1.5",
     [switch]$SkipApk
 )
 
@@ -49,7 +49,8 @@ $manifest = @{
     apkSha256        = ""
 } | ConvertTo-Json -Depth 4
 
-Set-Content -Path $verPath -Value $manifest -Encoding UTF8
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText($verPath, $manifest, $utf8NoBom)
 
 $batch = @("-pw", $ServerPassword, "-batch")
 & $plink @("-ssh", "${ServerUser}@${ServerHost}", "-pw", $ServerPassword, "-batch") "mkdir -p /var/www/ctvt"

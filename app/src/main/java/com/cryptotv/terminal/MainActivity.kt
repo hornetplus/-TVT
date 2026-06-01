@@ -25,7 +25,9 @@ import android.webkit.JavascriptInterface
 
 import android.webkit.WebView
 
+import android.webkit.WebResourceRequest
 import android.webkit.WebViewClient
+import android.webkit.WebResourceError
 
 import android.widget.FrameLayout
 
@@ -127,7 +129,33 @@ class MainActivity : ComponentActivity() {
 
             }
 
-            webViewClient = WebViewClient()
+            webViewClient = object : WebViewClient() {
+                override fun onReceivedError(
+                    view: WebView?,
+                    request: WebResourceRequest?,
+                    error: WebResourceError?,
+                ) {
+                    if (request == null || !request.isForMainFrame) return
+                    val url = request.url?.toString() ?: return
+                    if (url.contains("ctvt-web")) {
+                        UpdateManager.clearWebBundle(this@MainActivity)
+                        view?.loadUrl(UpdateManager.resolveWebUrl(this@MainActivity))
+                    }
+                }
+
+                @Deprecated("Deprecated in Java")
+                override fun onReceivedError(
+                    view: WebView?,
+                    errorCode: Int,
+                    description: String?,
+                    failingUrl: String?,
+                ) {
+                    if (failingUrl != null && failingUrl.contains("ctvt-web")) {
+                        UpdateManager.clearWebBundle(this@MainActivity)
+                        view?.loadUrl(UpdateManager.resolveWebUrl(this@MainActivity))
+                    }
+                }
+            }
 
             addJavascriptInterface(AndroidHostBridge(), "AndroidHost")
 

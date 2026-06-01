@@ -31,10 +31,11 @@ object UpdateManager {
     private const val KEY_WEB_SHA256 = "web_bundle_sha256"
     private const val KEY_LAST_CHECK_MS = "last_check_ms"
     private const val KEY_LAST_REMOTE_WEB = "last_remote_web"
-    private const val CHECK_COOLDOWN_MS = 6 * 60 * 60 * 1000L // без новой версии на сервере — не дергаем сеть
+    private const val CHECK_COOLDOWN_MS = 6 * 60 * 60 * 1000L
     private const val WEB_DIR = "ctvt-web"
-    /** Версия web, вшитая в APK (assets/web). */
-    const val BUNDLED_WEB_VERSION = 10
+    const val BUNDLED_WEB_VERSION = 11
+
+    private val REQUIRED_WEB_FILES = arrayOf("index.html", "api.js", "terminal.js", "config.js")
 
     data class Result(
         val webUrl: String,
@@ -51,13 +52,32 @@ object UpdateManager {
 
     fun webRoot(ctx: Context): File = File(ctx.filesDir, WEB_DIR)
 
-    fun resolveWebUrl(ctx: Context): String {
-        val index = File(webRoot(ctx), "index.html")
-        return if (index.isFile) {
-            "file://${index.absolutePath}"
-        } else {
-            "file:///android_asset/web/index.html"
+    /** OTA-папка целая? Иначе откат на assets из APK. */
+    fun isWebBundleValid(ctx: Context): Boolean {
+        val root = webRoot(ctx)
+        for (name in REQUIRED_WEB_FILES) {
+            val f = File(root, name)
+            if (!f.isFile || f.length() < 32L) return false
         }
+        return true
+    }
+
+    fun clearWebBundle(ctx: Context) {
+        val root = webRoot(ctx)
+        if (root.exists()) deleteRecursive(root)
+        prefs(ctx).edit()
+            .remove(KEY_WEB_VERSION)
+            .remove(KEY_WEB_SHA256)
+            .apply()
+        Log.w(TAG, "Cleared broken OTA web bundle")
+    }
+
+    fun resolveWebUrl(ctx: Context): String {
+        if (isWebBundleValid(ctx)) {
+            return "file://${File(webRoot(ctx), "index.html").absolutePath}"
+        }
+        if (webRoot(ctx).exists()) clearWebBundle(ctx)
+        return "file:///android_asset/web/index.html"
     }
 
     fun checkAndApply(ctx: Context): Result {
@@ -67,35 +87,46 @@ object UpdateManager {
         var apkName: String? = null
 
         try {
+            if (!isWebBundleValid(ctx)) {
+                Log.i(TAG, "Using bundled web (OTA invalid or missing)")
+            }
+
             val now = System.currentTimeMillis()
             val p = prefs(ctx)
             val lastCheck = p.getLong(KEY_LAST_CHECK_MS, 0L)
             val lastRemote = p.getInt(KEY_LAST_REMOTE_WEB, 0)
             val localWeb = localWebVersion(ctx)
-            val indexOk = File(webRoot(ctx), "index.html").isFile
+            val indexOk = isWebBundleValid(ctx)
+            val storedSha = p.getString(KEY_WEB_SHA256, "")?.lowercase() ?: ""
 
-            if (
-                now - lastCheck < CHECK_COOLDOWN_MS &&
-                indexOk &&
-                localWeb >= lastRemote &&
-                lastRemote > 0
-            ) {
-                Log.d(TAG, "Skip update check (cooldown, web v$localWeb)")
+            val manifest = fetchJson(VERSION_URL)
+            if (manifest == null) {
+                Log.w(TAG, "version.json unavailable")
                 return Result(webUrl, false)
             }
 
-            val manifest = fetchJson(VERSION_URL) ?: return Result(webUrl, false)
-
             val remoteWeb = manifest.optInt("webVersion", 0)
             val expectedSha = manifest.optString("webBundleSha256", "").lowercase()
-            val storedSha = p.getString(KEY_WEB_SHA256, "")?.lowercase() ?: ""
-            val alreadyHaveBundle =
-                remoteWeb <= localWeb &&
-                    expectedSha.isNotBlank() &&
-                    expectedSha == storedSha &&
-                    indexOk
+            val shaOk = expectedSha.isBlank() || expectedSha == storedSha
+            val needsUpdate =
+                remoteWeb > localWeb ||
+                    !indexOk ||
+                    (expectedSha.isNotBlank() && !shaOk)
 
-            if (!alreadyHaveBundle && remoteWeb > localWeb) {
+            val onCooldown =
+                !needsUpdate &&
+                    now - lastCheck < CHECK_COOLDOWN_MS &&
+                    indexOk &&
+                    localWeb >= remoteWeb &&
+                    remoteWeb > 0
+
+            if (onCooldown) {
+                Log.d(TAG, "Skip download (cooldown, web v$localWeb)")
+                p.edit().putLong(KEY_LAST_CHECK_MS, now).apply()
+                return Result(webUrl, false)
+            }
+
+            if (needsUpdate && remoteWeb > 0) {
                 val bundleUrl = manifest.optString("webBundleUrl", "")
                 if (bundleUrl.isNotBlank()) {
                     val ok = downloadWebBundle(ctx, bundleUrl, expectedSha, remoteWeb)
@@ -103,10 +134,11 @@ object UpdateManager {
                         webUpdated = true
                         webUrl = resolveWebUrl(ctx)
                         Log.i(TAG, "Web bundle updated to v$remoteWeb")
+                    } else {
+                        Log.w(TAG, "Web bundle download failed, keeping current web")
+                        webUrl = resolveWebUrl(ctx)
                     }
                 }
-            } else if (alreadyHaveBundle) {
-                Log.d(TAG, "Web bundle up to date (v$localWeb)")
             }
 
             p.edit()
@@ -130,6 +162,7 @@ object UpdateManager {
             }
         } catch (e: Exception) {
             Log.w(TAG, "Update check failed: ${e.message}")
+            webUrl = resolveWebUrl(ctx)
         }
 
         return Result(webUrl, webUpdated, apkFile, apkName)
@@ -145,7 +178,12 @@ object UpdateManager {
         try {
             if (conn.responseCode !in 200..299) return null
             val text = conn.inputStream.bufferedReader().readText()
+                .trimStart('\uFEFF')
+                .trim()
             return JSONObject(text)
+        } catch (e: Exception) {
+            Log.w(TAG, "JSON parse failed: ${e.message}")
+            return null
         } finally {
             conn.disconnect()
         }
@@ -172,22 +210,49 @@ object UpdateManager {
             cache.delete()
             return false
         }
-        val index = File(tmp, "index.html")
-        if (!index.isFile) {
+        if (!isWebBundleValidIn(tmp)) {
+            Log.w(TAG, "Unpacked bundle incomplete")
             deleteRecursive(tmp)
             cache.delete()
             return false
         }
-        if (dest.exists()) deleteRecursive(dest)
-        if (!tmp.renameTo(dest)) {
-            copyRecursive(tmp, dest)
-            deleteRecursive(tmp)
+        val backup = File(ctx.filesDir, "$WEB_DIR.bak")
+        if (backup.exists()) deleteRecursive(backup)
+        if (dest.exists()) {
+            if (!dest.renameTo(backup)) {
+                deleteRecursive(backup)
+                copyRecursive(dest, backup)
+                deleteRecursive(dest)
+            }
         }
+        val installed = if (tmp.renameTo(dest)) {
+            true
+        } else {
+            copyRecursive(tmp, dest)
+            isWebBundleValid(ctx)
+        }
+        deleteRecursive(tmp)
         cache.delete()
+        if (!installed || !isWebBundleValid(ctx)) {
+            Log.w(TAG, "Install failed, restoring backup if any")
+            deleteRecursive(dest)
+            if (backup.exists()) backup.renameTo(dest)
+            deleteRecursive(backup)
+            return false
+        }
+        deleteRecursive(backup)
         prefs(ctx).edit()
             .putInt(KEY_WEB_VERSION, newVersion)
             .putString(KEY_WEB_SHA256, expectedSha256)
             .apply()
+        return true
+    }
+
+    private fun isWebBundleValidIn(dir: File): Boolean {
+        for (name in REQUIRED_WEB_FILES) {
+            val f = File(dir, name)
+            if (!f.isFile || f.length() < 32L) return false
+        }
         return true
     }
 
@@ -300,3 +365,4 @@ object UpdateManager {
         }
     }
 }
+
