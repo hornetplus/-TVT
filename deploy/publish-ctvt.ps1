@@ -44,7 +44,7 @@ $batch = @("-pw", $ServerPassword, "-batch")
 if (-not $SkipApk) {
     $apkLocal = Join-Path $root "app\build\outputs\apk\debug\app-debug.apk"
     if (-not (Test-Path $apkLocal)) {
-        Write-Host "APK not found at $apkLocal — build first or use -SkipApk"
+        Write-Host "APK not found at $apkLocal - build first or use -SkipApk"
     } else {
         $apkHash = (Get-FileHash -Path $apkLocal -Algorithm SHA256).Hash.ToLower()
         $manifestObj = Get-Content $verPath -Raw | ConvertFrom-Json
