@@ -614,6 +614,18 @@ function runSafe(fn, label) {
     console.warn('[' + label + ']', e && e.message);
   });
 }
+/** Сразу показать последнюю монету из кэша (после перезагрузки страницы). */
+function refreshLiquidationsDisplay() {
+  const keys = Object.keys(CONFIG.coinalyze && CONFIG.coinalyze.symbols || {});
+  for (let i = keys.length - 1; i >= 0; i--) {
+    const a = keys[(liqRot + keys.length - 1 - i) % keys.length];
+    if (liqByAsset[a]) {
+      emitLiquidationsForAsset(a);
+      return;
+    }
+  }
+}
+
 function startPolling() {
   const I = CONFIG.intervals;
   const jobs = [
@@ -629,6 +641,7 @@ function startPolling() {
   jobs.forEach(([label, fn, ms], idx) => {
     setTimeout(() => {
       runSafe(fn, label);
+      if (label === 'liquidations') setTimeout(refreshLiquidationsDisplay, 400);
       setInterval(() => runSafe(fn, label), ms);
     }, idx * 500);
   });

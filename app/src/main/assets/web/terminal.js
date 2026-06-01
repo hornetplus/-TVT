@@ -277,8 +277,11 @@ function renderGas() {
 }
 function renderLiquidations() {
   const liq = INDICATORS.liquidations;
+  const asset = liq.asset || '—';
   const assetLbl = $('#liq-asset-label');
-  if (assetLbl) assetLbl.textContent = liq.asset || '—';
+  if (assetLbl) assetLbl.textContent = asset;
+  const title = $('#liq-title');
+  if (title) title.innerHTML = `Ликвидации <span class="liq-asset" id="liq-asset-label">${asset}</span> · 24ч`;
   const total = $('.liq-total'); if (total) total.textContent = liq.total;
   const legs = $$('.liq-leg .num');
   if (legs[0]) legs[0].textContent = liq.longUsd;
