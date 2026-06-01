@@ -1,6 +1,15 @@
 {
-  "updated": "2026-06-01T09:36:14.438043+00:00",
+  "updated": "2026-06-01T09:56:36.677414+00:00",
   "items": [
+    {
+      "id": "ForkLog:https://forklog.com/?p=280821",
+      "title": "Coinbase открыла прямые операции с рупиями в Индии",
+      "source": "ForkLog",
+      "glyph": "F",
+      "color": "#2BE3F0",
+      "date": "2026-06-01 09:33:30",
+      "link": "https://forklog.com/coinbase-otkryla-pryamye-operatsii-s-rupiyami-v-indii"
+    },
     {
       "id": "ForkLog:https://forklog.com/?p=280819",
       "title": "СМИ: Meta протестирует ИИ-кулон в 2027 году",
@@ -171,15 +180,6 @@
       "color": "#2BE3F0",
       "date": "2026-05-31 08:30:23",
       "link": "https://forklog.com/news/ai/softbank-investiruet-75-mlrd-v-ii-proekty-vo-frantsii"
-    },
-    {
-      "id": "ForkLog:https://forklog.com/?p=280777",
-      "title": "США конфисковали связанную с Ираном криптовалюту на $1 млрд",
-      "source": "ForkLog",
-      "glyph": "F",
-      "color": "#2BE3F0",
-      "date": "2026-05-31 07:58:48",
-      "link": "https://forklog.com/ssha-konfiskovali-svyazannuyu-s-iranom-kriptovalyutu-na-1-mlrd"
     }
   ]
 }

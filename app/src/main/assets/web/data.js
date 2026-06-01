@@ -61,7 +61,7 @@ const MARKET = {
 
 // индикаторы (ТЗ §7.8). funding/gas/liquidations наполняются из api.js (Coinalyze)
 const INDICATORS = {
-  liquidations: { total: '—', longUsd: '—', shortUsd: '—', longPct: null },
+  liquidations: { asset: 'BTC', total: '—', longUsd: '—', shortUsd: '—', longPct: null },
   funding: [
     { sym: 'BTC', val: null }, { sym: 'ETH', val: null },
     { sym: 'SOL', val: null }, { sym: 'XRP', val: null },

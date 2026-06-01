@@ -552,22 +552,20 @@ const liqByAsset = {};
 const liqLastPoll = {};
 let liqRot = 0;
 
-function aggregateLiquidations() {
-  let longUsd = 0;
-  let shortUsd = 0;
-  Object.values(liqByAsset).forEach((v) => {
-    longUsd += v.longUsd || 0;
-    shortUsd += v.shortUsd || 0;
-  });
+function emitLiquidationsForAsset(asset) {
+  const row = liqByAsset[asset];
+  if (!row) return;
+  const longUsd = row.longUsd || 0;
+  const shortUsd = row.shortUsd || 0;
   const total = longUsd + shortUsd;
-  if (!total) return null;
-  return {
+  if (!total) return;
+  FEED.emit('liquidations', {
+    asset,
     totalUsd: total,
     longUsd,
     shortUsd,
     longPct: Math.round((longUsd / total) * 100),
-    assets: { ...liqByAsset },
-  };
+  });
 }
 
 async function pollLiquidations() {
@@ -580,7 +578,10 @@ async function pollLiquidations() {
   liqRot += 1;
   const minGap = cfg.minMsPerSymbol || 6000;
   const last = liqLastPoll[asset] || 0;
-  if (Date.now() - last < minGap) return;
+  if (Date.now() - last < minGap) {
+    emitLiquidationsForAsset(asset);
+    return;
+  }
   liqLastPoll[asset] = Date.now();
 
   const symbol = cfg.symbols[asset];
@@ -603,8 +604,7 @@ async function pollLiquidations() {
     shortUsd += Number(h.s) || 0;
   });
   liqByAsset[asset] = { longUsd, shortUsd, symbol };
-  const agg = aggregateLiquidations();
-  if (agg) FEED.emit('liquidations', agg);
+  emitLiquidationsForAsset(asset);
 }
 
 /* ---------- планировщик ---------- */

@@ -277,6 +277,8 @@ function renderGas() {
 }
 function renderLiquidations() {
   const liq = INDICATORS.liquidations;
+  const assetLbl = $('#liq-asset-label');
+  if (assetLbl) assetLbl.textContent = liq.asset || '—';
   const total = $('.liq-total'); if (total) total.textContent = liq.total;
   const legs = $$('.liq-leg .num');
   if (legs[0]) legs[0].textContent = liq.longUsd;
@@ -290,8 +292,9 @@ function renderLiquidations() {
   }
 }
 function onLiquidations(d) {
-  if (!d || !d.totalUsd) return;
+  if (!d || !d.totalUsd || !d.asset) return;
   INDICATORS.liquidations = {
+    asset: d.asset,
     total: fmtVol(d.totalUsd),
     longUsd: fmtVol(d.longUsd),
     shortUsd: fmtVol(d.shortUsd),
