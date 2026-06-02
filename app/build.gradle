@@ -11,8 +11,21 @@ android {
         applicationId "com.cryptotv.terminal"
         minSdk 21          // покрывает практически все Android TV / Fire TV
         targetSdk 34
-        versionCode 6
-        versionName "1.5"
+        versionCode 7
+        versionName "1.6"
+    }
+
+    // Подпись релиза — из переменных окружения (GitHub Secrets). Секреты в репозиторий НЕ коммитятся.
+    def ctvtStorePw = System.getenv('CTVT_STORE_PW')
+    signingConfigs {
+        release {
+            if (ctvtStorePw != null && !ctvtStorePw.isEmpty()) {
+                storeFile file(System.getenv('CTVT_KEYSTORE') ?: 'ctvt-release.keystore')
+                storePassword ctvtStorePw
+                keyAlias System.getenv('CTVT_KEY_ALIAS') ?: 'ctvt'
+                keyPassword (System.getenv('CTVT_KEY_PW') ?: ctvtStorePw)
+            }
+        }
     }
 
     buildTypes {
@@ -21,9 +34,9 @@ android {
             // Это и есть APK, который собирает GitHub Actions (artifact app-debug.apk).
         }
         release {
+            if (ctvtStorePw != null && !ctvtStorePw.isEmpty()) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            // Для публикации добавьте signingConfig — см. README → «Подпись релиза».
         }
     }
 

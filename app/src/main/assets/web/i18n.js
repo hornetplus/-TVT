@@ -20,11 +20,18 @@ const I18N = (() => {
       btc_dom: 'Доминация BTC',
       altseason: 'Альтсезон',
       market_cap: 'Капитализация рынка',
+      btn_update: 'Обновить',
+      ota_checking: 'Проверка обновлений…',
+      ota_updated: (v) => `Установлено · web v${v}`,
+      ota_uptodate: (v) => `Актуально · web v${v}`,
+      ota_apk_only: 'Кнопка работает в приложении на ТВ',
       language: 'Язык',
 
       overview: 'Обзор рынка',
       tab_usd: 'USD', tab_pct: '24Ч %', tab_vol: 'Объём',
       all_assets: 'Все активы',
+      all_assets_sub: 'Включённые монеты — в обзоре рынка и доступны для карточек «В фокусе»',
+      wl_empty: 'Включите монеты в «Все активы»',
 
       focus: 'В фокусе',
       support: 'Поддержка', resistance: 'Сопротивление',
@@ -93,11 +100,18 @@ const I18N = (() => {
       btc_dom: 'BTC dominance',
       altseason: 'Altseason',
       market_cap: 'Market cap',
+      btn_update: 'Update',
+      ota_checking: 'Checking for updates…',
+      ota_updated: (v) => `Updated · web v${v}`,
+      ota_uptodate: (v) => `Up to date · web v${v}`,
+      ota_apk_only: 'Update button works in the TV app only',
       language: 'Language',
 
       overview: 'Market overview',
       tab_usd: 'USD', tab_pct: '24H %', tab_vol: 'Volume',
       all_assets: 'All assets',
+      all_assets_sub: 'Enabled coins appear in market overview and can be added to «In focus» cards',
+      wl_empty: 'Enable coins in «All assets»',
 
       focus: 'In focus',
       support: 'Support', resistance: 'Resistance',
@@ -170,6 +184,11 @@ const I18N = (() => {
     });
     root.querySelectorAll('[data-i18n-ph]').forEach((el) => {
       el.setAttribute('placeholder', t(el.getAttribute('data-i18n-ph')));
+    });
+    root.querySelectorAll('[data-i18n-aria]').forEach((el) => {
+      const label = t(el.getAttribute('data-i18n-aria'));
+      el.setAttribute('aria-label', label);
+      el.setAttribute('title', label);
     });
     document.documentElement.lang = lang;
   }

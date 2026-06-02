@@ -61,7 +61,11 @@ const CONFIG = {
     BTC: 'bitcoin', ETH: 'ethereum', SOL: 'solana', BNB: 'binancecoin',
     XRP: 'ripple', TON: 'the-open-network', DOGE: 'dogecoin', ADA: 'cardano',
     AVAX: 'avalanche-2', LINK: 'chainlink', TRX: 'tron', DOT: 'polkadot',
-    USDC: 'usd-coin',
+    MATIC: 'matic-network', LTC: 'litecoin', SHIB: 'shiba-inu', BCH: 'bitcoin-cash',
+    UNI: 'uniswap', ATOM: 'cosmos', NEAR: 'near', APT: 'aptos', SUI: 'sui',
+    HBAR: 'hedera-hashgraph', ICP: 'internet-computer', FIL: 'filecoin',
+    ARB: 'arbitrum', OP: 'optimism', INJ: 'injective-protocol', IMX: 'immutable-x',
+    STX: 'blockstack', USDC: 'usd-coin',
   },
 
   // -------- Фандинг: инструменты по биржам (пробуем по очереди) --------

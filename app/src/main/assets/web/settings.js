@@ -17,7 +17,7 @@ window.CTV = window.CTV || {}; // сюда terminal.js кладёт rerender-х�
 
 const SETTINGS = (() => {
   const KEY = 'ctv.settings.v1';
-  const PINNED = ['BTC', 'ETH'];               // всегда отслеживаются и доступны в hero
+  const PINNED = ['BTC', 'ETH'];               // legacy; не блокируют тумблер
   const ALL = Object.keys(ASSETS).filter((s) => s !== 'USDC');
   const HERO_MAX = 7;
 
@@ -40,7 +40,9 @@ const SETTINGS = (() => {
       if (!s.heroSymbols.length) s.heroSymbols = ['BTC'];
       s.trackedAssets = (Array.isArray(s.trackedAssets) ? s.trackedAssets : defaults.trackedAssets)
         .filter((x) => ALL.includes(x));
-      PINNED.forEach((p) => { if (!s.trackedAssets.includes(p)) s.trackedAssets.unshift(p); });
+      if (!s.trackedAssets.length) s.trackedAssets = ['BTC', 'ETH'];
+      s.heroSymbols = s.heroSymbols.filter((x) => s.trackedAssets.includes(x));
+      if (!s.heroSymbols.length) s.heroSymbols = [s.trackedAssets[0]];
       if (!['ru', 'en'].includes(s.lang)) s.lang = 'ru';
       return s;
     } catch (e) { return Object.assign({}, defaults); }
@@ -53,14 +55,21 @@ const SETTINGS = (() => {
     get lang() { return state.lang; },
     setLang(l) { state.lang = l; save(); },
     get heroSymbols() { return state.heroSymbols; },
-    setHero(arr) { state.heroSymbols = arr.slice(0, HERO_MAX); save(); },
-    get trackedAssets() { return state.trackedAssets; },
-    setTracked(arr) {
-      const set = PINNED.concat(arr.filter((x) => !PINNED.includes(x)));
-      state.trackedAssets = set.filter((x, i) => set.indexOf(x) === i && ALL.includes(x));
+    setHero(arr) {
+      state.heroSymbols = arr.filter((s) => state.trackedAssets.includes(s) && ALL.includes(s)).slice(0, HERO_MAX);
+      if (!state.heroSymbols.length) state.heroSymbols = [state.trackedAssets[0] || 'BTC'];
       save();
     },
-    rotatingPool() { return state.trackedAssets.filter((s) => !PINNED.includes(s)); },
+    get trackedAssets() { return state.trackedAssets; },
+    setTracked(arr) {
+      state.trackedAssets = arr.filter((x, i) => arr.indexOf(x) === i && ALL.includes(x));
+      if (!state.trackedAssets.length) state.trackedAssets = ['BTC'];
+      const hero = state.heroSymbols.filter((s) => state.trackedAssets.includes(s));
+      state.heroSymbols = hero.length ? hero : [state.trackedAssets[0]];
+      save();
+    },
+    isTracked(sym) { return state.trackedAssets.includes(sym); },
+    rotatingPool() { return state.trackedAssets.slice(); },
     newsEnabled(name) { return !state.disabledNewsSources.includes(name); },
     setDisabledNews(arr) { state.disabledNewsSources = arr.slice(); save(); },
     isPinned: (s) => PINNED.includes(s),
@@ -98,25 +107,34 @@ const SettingsUI = (() => {
   function heroBody() {
     const sel = draft.hero;
     const order = (sym) => sel.indexOf(sym);
-    const rows = SETTINGS.ALL.map((sym) => {
+    const tracked = new Set(SETTINGS.trackedAssets);
+    const rows = SETTINGS.ALL.filter((sym) => tracked.has(sym)).map((sym) => {
       const a = ASSETS[sym];
       const isOn = sel.includes(sym);
       const isFeat = sel[0] === sym;
       const idx = order(sym);
       const full = sel.length >= SETTINGS.HERO_MAX && !isOn;
-      return `<div class="cfg-row ${isOn ? 'sel' : ''} ${full ? 'disabled' : ''} selector" data-act="hero-toggle" data-sym="${sym}" tabindex="-1">
-        ${coinIcon(sym)}
-        <div class="cfg-id"><div class="tk">${sym}</div><div class="nm">${a.name}</div></div>
-        ${price(sym)}
-        ${isOn ? `<button class="cfg-star ${isFeat ? 'on' : ''} selector" data-act="hero-feature" data-sym="${sym}" tabindex="-1" title="${t('featured')}">
+      const starBtn = isOn
+        ? `<button type="button" class="cfg-star ${isFeat ? 'on' : ''} selector" data-act="hero-feature" data-sym="${sym}" tabindex="-1" title="${t('featured')}">
             <svg viewBox="0 0 24 24" fill="${isFeat ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="m12 2 3 6.9 7.5.6-5.7 4.9 1.8 7.3L12 17.8 5.4 21.7l1.8-7.3L1.5 9.5 9 8.9 12 2Z"/></svg>
-          </button>` : '<span class="cfg-star-spacer"></span>'}
-        ${isOn ? `<span class="cfg-order">${isFeat ? t('featured') : '#' + (idx + 1)}</span>` : '<span class="cfg-order dim"></span>'}
-        ${toggle(isOn)}
+          </button>`
+        : '';
+      const orderLbl = isOn ? (isFeat ? t('featured') : '#' + (idx + 1)) : '';
+      return `<div class="cfg-row cfg-row--hero ${isOn ? 'sel' : ''} ${full ? 'disabled' : ''} selector" data-act="hero-toggle" data-sym="${sym}" tabindex="-1">
+        <div class="cfg-hero-top">
+          ${coinIcon(sym, 'small')}
+          <div class="cfg-id"><div class="tk">${sym}</div><div class="nm">${a.name}</div></div>
+          ${price(sym)}
+          ${starBtn}
+        </div>
+        <div class="cfg-hero-bot">
+          <span class="cfg-order ${isOn ? '' : 'dim'}">${orderLbl}</span>
+          ${toggle(isOn)}
+        </div>
       </div>`;
     }).join('');
     return wrap('hero', t('hero_cfg_title'), t('hero_cfg_sub'),
-      `<div class="cfg-list cfg-grid2">${rows}</div>`,
+      `<div class="cfg-list cfg-grid2 cfg-list--hero">${rows}</div>`,
       t('sel_count', sel.length, SETTINGS.HERO_MAX) + ' · ' + t('max_hint'));
   }
 
@@ -127,7 +145,7 @@ const SettingsUI = (() => {
       const a = ASSETS[sym];
       const pin = SETTINGS.isPinned(sym);
       const isOn = pin || sel.includes(sym);
-      return `<div class="cfg-row ${isOn ? 'sel' : ''} ${pin ? 'locked' : 'selector'}" ${pin ? '' : `data-act="wl-toggle" data-sym="${sym}" tabindex="-1"`}>
+      return `<div class="cfg-row cfg-row--wl ${isOn ? 'sel' : ''} ${pin ? 'locked' : 'selector'}" ${pin ? '' : `data-act="wl-toggle" data-sym="${sym}" tabindex="-1"`}>
         ${coinIcon(sym)}
         <div class="cfg-id"><div class="tk">${sym}</div><div class="nm">${a.name}</div></div>
         ${price(sym)}
@@ -147,7 +165,7 @@ const SettingsUI = (() => {
     const dis = new Set(draft.disabledNews);
     const srcRow = (s) => {
       const on = !dis.has(s.name);
-      return `<div class="cfg-row ${on ? 'sel' : ''} selector" data-act="news-toggle" data-src="${s.name}" tabindex="-1">
+      return `<div class="cfg-row cfg-row--news ${on ? 'sel' : ''} selector" data-act="news-toggle" data-src="${s.name}" tabindex="-1">
         <span class="news-av cfg-av" style="color:${s.color}">${s.glyph}</span>
         <div class="cfg-id"><div class="tk" style="font-size:17px">${s.name}</div><div class="nm">${s.url.replace(/^https?:\/\//, '').split('/')[0]}</div></div>
         ${toggle(on)}
@@ -196,7 +214,7 @@ const SettingsUI = (() => {
       tracked: SETTINGS.trackedAssets.slice(),
       disabledNews: SETTINGS.get().disabledNewsSources.slice(),
     };
-    window.openOverlay(titleFor(kind), bodyFor(kind), { settings: true });
+    window.openOverlay(titleFor(kind), bodyFor(kind), { settings: true, mode: 'cfg' });
     focusFirst();
   }
   function rerender() {
@@ -256,7 +274,8 @@ const SettingsUI = (() => {
   }
   function apply() {
     if (active === 'hero') {
-      SETTINGS.setHero(draft.hero.length ? draft.hero : ['BTC']);
+      const hero = draft.hero.filter((s) => SETTINGS.isTracked(s));
+      SETTINGS.setHero(hero.length ? hero : [SETTINGS.trackedAssets[0] || 'BTC']);
       if (window.CTV.applyHero) window.CTV.applyHero();
     } else if (active === 'watchlist') {
       SETTINGS.setTracked(draft.tracked);
@@ -270,44 +289,82 @@ const SettingsUI = (() => {
   return { open, handle, isOpen: () => !!active, close: () => { active = null; draft = null; } };
 })();
 
-/* =========================================================
-   D-PAD: пространственная навигация по .selector в оверлее
-   ========================================================= */
-function tvFocus(el) {
-  if (!el) return;
-  const scope = el.closest('.ctv-overlay') || document;
-  scope.querySelectorAll('.selector.focus').forEach((n) => n.classList.remove('focus'));
-  el.classList.add('focus');
-  if (typeof el.focus === 'function') el.focus({ preventScroll: false });
-  if (el.scrollIntoView) el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-}
-function spatialPick(current, dir) {
-  const ov = document.getElementById('ctv-overlay');
-  if (!ov) return null;
-  const items = [...ov.querySelectorAll('.selector')].filter((n) => n.offsetParent !== null);
-  if (!items.length) return null;
-  if (!current || !items.includes(current)) return items[0];
-  const cr = current.getBoundingClientRect();
-  const cx = cr.left + cr.width / 2, cy = cr.top + cr.height / 2;
-  let best = null, bestScore = Infinity;
-  for (const it of items) {
-    if (it === current) continue;
-    const r = it.getBoundingClientRect();
-    const x = r.left + r.width / 2, y = r.top + r.height / 2;
-    const dx = x - cx, dy = y - cy;
-    const ok = dir === 'right' ? dx > 6 : dir === 'left' ? dx < -6 : dir === 'down' ? dy > 6 : dy < -6;
-    if (!ok) continue;
-    const along = (dir === 'left' || dir === 'right') ? Math.abs(dx) : Math.abs(dy);
-    const cross = (dir === 'left' || dir === 'right') ? Math.abs(dy) : Math.abs(dx);
-    const score = along + cross * 2.2; // штраф за поперечное смещение
-    if (score < bestScore) { bestScore = score; best = it; }
+/* ---------- Каталог «Все активы» (тумблеры → обзор + hero) ---------- */
+const AssetsCatalog = (() => {
+  const t = (k, ...a) => window.I18N.t(k, ...a);
+
+  function coinIcon(sym, cls = '') {
+    const a = ASSETS[sym] || { color: 'usdc', glyph: '$' };
+    return `<span class="coin-ic ${cls}" style="background:var(--c-${a.color})">${a.glyph}</span>`;
   }
-  return best;
-}
+  function price(sym) {
+    const s = ASSET_STATE[sym];
+    if (!s || !window.fmtPrice) return '';
+    const pr = window.fmtPrice(s.priceUsd);
+    const ch = window.fmtPct ? window.fmtPct(s.change24hPct) : '';
+    const cls = s.change24hPct >= 0 ? 'up' : 'down';
+    return `<div class="cfg-price"><span class="num">${pr}</span><span class="num ${cls}">${ch}</span></div>`;
+  }
+  function toggle(on) {
+    return `<span class="tgl ${on ? 'on' : ''}"><span class="tgl-knob"></span></span>`;
+  }
+
+  function sortedSymbols() {
+    return SETTINGS.ALL.slice().sort((a, b) => {
+      const va = (ASSET_STATE[a] && ASSET_STATE[a].volumeUsd) || 0;
+      const vb = (ASSET_STATE[b] && ASSET_STATE[b].volumeUsd) || 0;
+      return vb - va;
+    });
+  }
+
+  function html() {
+    const on = SETTINGS.trackedAssets.length;
+    const rows = sortedSymbols().map((sym) => {
+      const a = ASSETS[sym];
+      const isOn = SETTINGS.isTracked(sym);
+      return `<div class="cfg-row cfg-row--wl selector" data-act="asset-toggle" data-sym="${sym}" tabindex="-1">
+        ${coinIcon(sym, 'small')}
+        <div class="cfg-id"><div class="tk">${sym}</div><div class="nm">${a.name}</div></div>
+        ${price(sym)}
+        ${toggle(isOn)}
+      </div>`;
+    }).join('');
+    return `<div class="cfg assets-catalog">
+      <div class="cfg-sub">${t('all_assets_sub')}</div>
+      <div class="cfg-scroll"><div class="cfg-list cfg-grid2 cfg-list--assets">${rows}</div></div>
+      <div class="cfg-note assets-catalog-note">${t('on_count', on, SETTINGS.ALL.length)}</div>
+    </div>`;
+  }
+
+  function applyToggle(sym) {
+    if (!SETTINGS.ALL.includes(sym)) return;
+    let tracked = SETTINGS.trackedAssets.slice();
+    const i = tracked.indexOf(sym);
+    if (i >= 0) tracked.splice(i, 1);
+    else tracked.push(sym);
+    SETTINGS.setTracked(tracked);
+    if (window.CTV.applyWatchlist) window.CTV.applyWatchlist();
+    if (window.CTV.applyHero) window.CTV.applyHero();
+    const body = document.getElementById('ctv-overlay-body');
+    if (body && document.querySelector('.ctv-overlay--assets')) {
+      body.innerHTML = html();
+      if (window.TvNav && TvNav.markTabindex) TvNav.markTabindex();
+      const row = body.querySelector(`[data-sym="${sym}"]`);
+      if (row && window.tvFocus) tvFocus(row, { remember: false });
+    }
+  }
+
+  function open() {
+    window.openOverlay(t('all_assets'), html(), { mode: 'assets' });
+    if (window.TvNav && TvNav.focusOverlayEntry) TvNav.focusOverlayEntry('assets');
+  }
+
+  return { open, applyToggle, html };
+})();
+window.AssetsCatalog = AssetsCatalog;
 
 function initSettings() {
-  // шестерёнки на панелях
-  const map = { 'hero-cfg-btn': 'hero', 'wl-cfg-btn': 'watchlist', 'news-cfg-btn': 'news' };
+  const map = { 'hero-cfg-btn': 'hero', 'news-cfg-btn': 'news' };
   Object.keys(map).forEach((id) => {
     const b = document.getElementById(id);
     if (b) b.addEventListener('click', () => SettingsUI.open(map[id]));
@@ -317,31 +374,25 @@ function initSettings() {
   const body = document.getElementById('ctv-overlay-body');
   if (body) body.addEventListener('click', (e) => {
     const el = e.target.closest('[data-act]');
-    if (!el || !SettingsUI.isOpen()) return;
+    if (!el) return;
+    if (el.dataset.act === 'asset-toggle' && el.dataset.sym) {
+      AssetsCatalog.applyToggle(el.dataset.sym);
+      return;
+    }
+    if (!SettingsUI.isOpen()) return;
     if (el.classList.contains('disabled')) return;
     SettingsUI.handle(el.dataset.act, el);
   });
+
+  const wlAll = document.getElementById('wl-all-btn');
+  const wlCfg = document.getElementById('wl-cfg-btn');
+  if (wlAll) wlAll.addEventListener('click', () => AssetsCatalog.open());
+  if (wlCfg) wlCfg.addEventListener('click', () => AssetsCatalog.open());
 
   // сбрасываем активный попап при закрытии оверлея
   const back = document.getElementById('ctv-overlay-back');
   if (back) back.addEventListener('click', () => SettingsUI.close());
 
-  // D-pad навигация (только при открытом оверлее)
-  document.addEventListener('keydown', (e) => {
-    const ov = document.getElementById('ctv-overlay');
-    if (!ov || ov.classList.contains('hidden')) return;
-    const dirs = { ArrowRight: 'right', ArrowLeft: 'left', ArrowUp: 'up', ArrowDown: 'down' };
-    if (dirs[e.key]) {
-      e.preventDefault();
-      const cur = ov.querySelector('.selector.focus') || ov.querySelector('.selector:focus');
-      const next = spatialPick(cur, dirs[e.key]);
-      if (next) tvFocus(next);
-    } else if (e.key === 'Enter' || e.key === ' ') {
-      const cur = ov.querySelector('.selector.focus') || document.activeElement;
-      if (cur && cur.closest && cur.closest('.ctv-overlay')) { e.preventDefault(); cur.click(); }
-    }
-  });
 }
 window.SettingsUI = SettingsUI;
 window.initSettings = initSettings;
-window.tvFocus = tvFocus;

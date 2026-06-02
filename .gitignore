@@ -11,3 +11,7 @@ local.properties
 *.apk
 *.aab
 !app/release/*.apk
+
+# release signing key — НЕ коммитить (хранится в GitHub Secrets как KEYSTORE_BASE64)
+*.keystore
+*.jks
