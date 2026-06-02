@@ -97,12 +97,18 @@ setInterval(tickClock, 1000);
 const prevPrice = {};
 let rotIndex = 0;
 let wlMode = 'usd';
+function watchlistPool() {
+  if (!window.SETTINGS) return Object.keys(ASSETS).filter((s) => s !== 'USDC');
+  return SETTINGS.trackedAssets.filter((s) => ASSETS[s]);
+}
 function currentWindow() {
-  const pool = WATCHLIST_CFG.rotatingPool;
+  const pool = watchlistPool();
   const n = WATCHLIST_CFG.windowSize;
-  const out = [];
-  for (let i = 0; i < n; i++) out.push(pool[(rotIndex * n + i) % pool.length]);
-  return out;
+  if (!pool.length) return [];
+  if (pool.length <= n) return pool.slice();
+  const pages = Math.ceil(pool.length / n);
+  const page = rotIndex % pages;
+  return pool.slice(page * n, page * n + n);
 }
 function rowPriceBlock(a) {
   const up = a.change24hPct >= 0;
@@ -136,14 +142,17 @@ function rowHtml(sym) {
 }
 function renderWatchlist() {
   const rows = $('#wl-rows'); if (!rows) return;
-  const syms = [...WATCHLIST_CFG.fixedAssets, ...currentWindow()];
-  rows.innerHTML = syms.map(rowHtml).join('');
+  const syms = currentWindow();
+  rows.innerHTML = syms.length ? syms.map(rowHtml).join('')
+    : `<div class="wl-empty" style="padding:var(--sp-6);color:var(--ink-3);text-align:center">${T('wl_empty')}</div>`;
 }
 function rotateWatchlist() {
-  const total = Math.ceil(WATCHLIST_CFG.rotatingPool.length / WATCHLIST_CFG.windowSize);
-  rotIndex = (rotIndex + 1) % total;
+  const pool = watchlistPool();
+  if (pool.length <= WATCHLIST_CFG.windowSize) return;
+  const pages = Math.ceil(pool.length / WATCHLIST_CFG.windowSize);
+  rotIndex = (rotIndex + 1) % pages;
   const rows = $$('#wl-rows .wl-row');
-  rows.slice(WATCHLIST_CFG.fixedAssets.length).forEach((r) => {
+  rows.forEach((r) => {
     r.style.transition = 'opacity .35s var(--ease)';
     r.style.opacity = '0';
   });
@@ -177,12 +186,9 @@ setInterval(rotateWatchlist, WATCHLIST_CFG.rotationIntervalSec * 1000);
 /* применить выбранные пользователем активы (из SETTINGS) к watchlist */
 function applyWatchlistSettings() {
   if (!window.SETTINGS) return;
-  WATCHLIST_CFG.fixedAssets = SETTINGS.PINNED.slice();
-  const pool = SETTINGS.rotatingPool();
-  WATCHLIST_CFG.rotatingPool = pool.length ? pool : SETTINGS.PINNED.slice();
-  WATCHLIST_CFG.windowSize = Math.max(1, Math.min(6, WATCHLIST_CFG.rotatingPool.length));
   rotIndex = 0;
   renderWatchlist();
+  if (window.CTV.applyHero) renderHeroes();
 }
 
 /* =========================================================
@@ -224,8 +230,12 @@ function ensureHero(sym) {
   return HERO_STATE[sym];
 }
 function heroList() {
-  const arr = (window.SETTINGS ? SETTINGS.heroSymbols : ['BTC', 'ETH']).filter((s) => ASSETS[s]);
-  return arr.length ? arr : ['BTC'];
+  const tracked = window.SETTINGS ? new Set(SETTINGS.trackedAssets) : null;
+  const arr = (window.SETTINGS ? SETTINGS.heroSymbols : ['BTC', 'ETH'])
+    .filter((s) => ASSETS[s] && (!tracked || tracked.has(s)));
+  if (arr.length) return arr;
+  const fallback = window.SETTINGS && SETTINGS.trackedAssets[0];
+  return fallback && ASSETS[fallback] ? [fallback] : ['BTC'];
 }
 const T = (k, ...a) => (window.I18N ? I18N.t(k, ...a) : k);
 
@@ -245,7 +255,7 @@ function heroFullHtml(sym, feature) {
     <div class="hero-top">
       ${coinIcon(h)}
       <div class="hero-id"><div class="tk">${sym}</div><div class="nm">${h.name}</div></div>
-      <span class="hero-star"><svg viewBox="0 0 24 24" fill="currentColor"><path d="m12 2 3 6.9 7.5.6-5.7 4.9 1.8 7.3L12 17.8 5.4 21.7l1.8-7.3L1.5 9.5 9 8.9 12 2Z"/></svg></span>
+      ${feature ? '<span class="hero-star"><svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="m12 2 3 6.9 7.5.6-5.7 4.9 1.8 7.3L12 17.8 5.4 21.7l1.8-7.3L1.5 9.5 9 8.9 12 2Z"/></svg></span>' : ''}
     </div>
     <div class="hero-price num">${fmtPrice(h.priceUsd)}</div>
     <div class="hero-chg">
@@ -279,7 +289,7 @@ function renderHeroes() {
   r.setAttribute('data-count', String(n));
   if (n <= 2) {
     r.classList.remove('has-feature');
-    r.innerHTML = list.map((s) => heroFullHtml(s, false)).join('');
+    r.innerHTML = list.map((s, i) => heroFullHtml(s, n === 1 || i === 0)).join('');
   } else {
     r.classList.add('has-feature');
     const rest = list.slice(1);
@@ -418,7 +428,7 @@ function computeAltseason(dominance) {
 /* =========================================================
    6. НОВОСТИ (§12) — данные из FEED 'news:item'
    ========================================================= */
-const NEWS_MAX = 5;
+const NEWS_MAX = 8;
 let newsArchive = [];
 let newsDomSeq = 0;
 const newsIds = new Set();
@@ -449,9 +459,11 @@ function pickPanelNews(items) {
   }
   return out;
 }
-function newsHtml(n) {
+function newsHtml(n, opts) {
   const age = (typeof relTime === 'function' && n.date) ? relTime(n.date) : 'сейчас';
-  return `<div class="news-item ${n.isNew ? 'is-new' : ''}" data-id="${n._domId}">
+  const sel = (opts && opts.selectable) ? ' selector' : '';
+  const tab = (opts && opts.selectable) ? ' tabindex="-1"' : '';
+  return `<div class="news-item${sel} ${n.isNew ? 'is-new' : ''}" data-id="${n._domId}"${tab}>
     <div class="news-av" style="color:${n.color}">${n.glyph}</div>
     <div class="news-body">
       <div class="news-meta">
@@ -578,22 +590,38 @@ function onMarkets(bySym) {
    9. ОВЕРЛЕИ: все активы / сделки / новости
    ========================================================= */
 let overlayNewsPage = 0;
-const OVERLAY_NEWS_PAGE = 6;
+const OVERLAY_NEWS_PAGE = 16;
 
 function openOverlay(title, html, opts) {
   const ov = $('#ctv-overlay');
   const body = $('#ctv-overlay-body');
   const ttl = $('#ctv-overlay-title');
   const nav = $('#ctv-overlay-nav');
+  const panel = ov && ov.querySelector('.ctv-overlay__panel');
   if (!ov || !body || !ttl) return;
   ttl.textContent = title;
   body.innerHTML = html;
   if (nav) nav.classList.toggle('hidden', !(opts && opts.paged));
+  if (panel) {
+    panel.className = 'ctv-overlay__panel panel';
+    const mode = (opts && opts.mode) || (opts && opts.settings ? 'cfg' : '');
+    if (mode) panel.classList.add('ctv-overlay--' + mode);
+  }
   ov.classList.remove('hidden');
   ov.setAttribute('aria-hidden', 'false');
   document.body.classList.add('ctv-overlay-open');
-  const back = $('#ctv-overlay-back');
-  if (back) back.focus();
+  if (window.TvNav) {
+    TvNav.markTabindex && TvNav.markTabindex();
+    if (opts && opts.settings) { /* focusFirst в settings */ }
+    else if (TvNav.focusOverlayEntry && opts && opts.mode) TvNav.focusOverlayEntry(opts.mode);
+    else if (window.tvFocus) {
+      const back = $('#ctv-overlay-back');
+      if (back) tvFocus(back, { remember: false });
+    }
+  } else {
+    const back = $('#ctv-overlay-back');
+    if (back) back.focus();
+  }
 }
 
 function closeOverlay() {
@@ -602,22 +630,10 @@ function closeOverlay() {
   ov.classList.add('hidden');
   ov.setAttribute('aria-hidden', 'true');
   document.body.classList.remove('ctv-overlay-open');
+  if (window.SettingsUI && SettingsUI.isOpen()) SettingsUI.close();
+  if (window.TvNav && TvNav.restoreMainFocus) TvNav.restoreMainFocus();
 }
 window.closeOverlay = closeOverlay;
-
-function allAssetsHtml() {
-  const syms = Object.keys(ASSET_STATE).filter((s) => s !== 'USDC');
-  syms.sort((a, b) => (ASSET_STATE[b].volumeUsd || 0) - (ASSET_STATE[a].volumeUsd || 0));
-  return syms.map((sym) => {
-    const a = ASSET_STATE[sym];
-    return `<div class="ov-wl-row">
-      ${coinIcon(a, 'small')}
-      <div class="wl-name"><div class="tk">${sym}</div><div class="nm">${a.name}</div></div>
-      <div class="wl-price"><div class="p num">${fmtPrice(a.priceUsd)}</div><div class="chg num ${dirClass(a.change24hPct)}">${fmtPct(a.change24hPct)}</div></div>
-      <div class="num" style="font-size:14px;font-weight:800;color:var(--ink-2)">${fmtVol(a.volumeUsd)}</div>
-    </div>`;
-  }).join('');
-}
 
 /* ---- улучшенное окно «Все транзакции»: сводка + фильтры + таблица ---- */
 let txFilter = 'all';
@@ -651,7 +667,7 @@ function whaleTableHtml() {
   const body = rows.map((t) => {
     const a = ASSET_STATE[t.asset] || { color: 'usdc', glyph: '$' };
     const age = (typeof relTime === 'function' && t.ts) ? relTime(new Date(t.ts)) : '';
-    return `<div class="txov-row" data-dir="${t.dir}">
+    return `<div class="txov-row selector" data-dir="${t.dir}" tabindex="-1">
       <span class="txov-time num">${age}</span>
       <span><span class="txov-pill ${t.dir}">${t.dir === 'in' ? TX_IN_ARROW : TX_OUT_ARROW}${t.dir === 'in' ? T('tx_in') : T('tx_out')}</span></span>
       <span class="txov-asset">${coinIcon(a, 'small')}<span class="tk">${t.asset}</span></span>
@@ -660,24 +676,22 @@ function whaleTableHtml() {
       <span class="num" style="color:var(--ink-3);font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.addr || ''}</span>
     </div>`;
   }).join('');
-  return summary + filters + `<div class="txov-table">${thead}${body}</div>`;
+  return `<div class="txov-layout">${summary}${filters}<div class="txov-scroll"><div class="txov-table">${thead}${body}</div></div></div>`;
 }
 function openWhaleOverlay() {
   txFilter = 'all';
-  openOverlay(T('whale'), whaleTableHtml());
+  openOverlay(T('whale'), whaleTableHtml(), { mode: 'tx' });
 }
 
 function renderNewsOverlayPage() {
-  const items = newsArchive.filter((n) => newsIsFresh(n) && (!window.SETTINGS || SETTINGS.newsEnabled(n.source))).sort((a, b) => b.date - a.date);
-  const pages = Math.max(1, Math.ceil(items.length / OVERLAY_NEWS_PAGE));
-  overlayNewsPage = Math.max(0, Math.min(overlayNewsPage, pages - 1));
-  const slice = items.slice(overlayNewsPage * OVERLAY_NEWS_PAGE, overlayNewsPage * OVERLAY_NEWS_PAGE + OVERLAY_NEWS_PAGE);
-  const html = slice.length
-    ? slice.map((n) => newsHtml(n)).join('')
-    : `<div class="news-item" style="opacity:.5">${T('news_empty')}</div>`;
-  openOverlay(T('news_overlay'), html, { paged: items.length > OVERLAY_NEWS_PAGE });
-  const pageEl = $('#ctv-overlay-page');
-  if (pageEl) pageEl.textContent = items.length ? `${overlayNewsPage + 1} / ${pages}` : '—';
+  const items = newsArchive
+    .filter((n) => newsIsFresh(n) && (!window.SETTINGS || SETTINGS.newsEnabled(n.source)))
+    .sort((a, b) => b.date - a.date)
+    .slice(0, 48);
+  const html = items.length
+    ? `<div class="ov-scroll ov-scroll--news">${items.map((n) => newsHtml(n, { selectable: true })).join('')}</div>`
+    : `<div class="ov-scroll ov-scroll--news"><div class="news-item" style="opacity:.5">${T('news_empty')}</div></div>`;
+  openOverlay(T('news_overlay'), html, { mode: 'news' });
 }
 
 function setWlMode(mode) {
@@ -705,13 +719,22 @@ function applyLanguage(lang) {
   if (lastGlobal) onGlobal(lastGlobal); else computeAltseason();
 }
 
+function triggerOtaUpdate() {
+  const btn = document.getElementById('hdr-ota-btn');
+  if (btn) btn.classList.add('loading');
+  if (window.AndroidHost && typeof AndroidHost.checkForUpdates === 'function') {
+    try { AndroidHost.checkForUpdates(); } catch (_) {
+      if (btn) btn.classList.remove('loading');
+    }
+    return;
+  }
+  if (btn) btn.classList.remove('loading');
+}
+
 function initTerminalUi() {
   $$('#wl-tabs .wl-tab').forEach((tab) => {
     tab.addEventListener('click', () => setWlMode(tab.dataset.wlMode || 'usd'));
   });
-
-  const wlAll = $('#wl-all-btn');
-  if (wlAll) wlAll.addEventListener('click', () => openOverlay(T('all_assets'), allAssetsHtml()));
 
   const whaleAll = $('#whale-all-btn');
   if (whaleAll) whaleAll.addEventListener('click', openWhaleOverlay);
@@ -734,7 +757,13 @@ function initTerminalUi() {
     if (!chip) return;
     txFilter = chip.dataset.txf;
     ovBody.innerHTML = whaleTableHtml();
+    if (window.TvNav && TvNav.markTabindex) TvNav.markTabindex();
+    const row = ovBody.querySelector('.txov-row.selector');
+    if (row && window.tvFocus) tvFocus(row, { remember: false });
   });
+
+  const otaBtn = document.getElementById('hdr-ota-btn');
+  if (otaBtn) otaBtn.addEventListener('click', triggerOtaUpdate);
 
   // переключатель языка
   $$('#lang-switch .lang-opt').forEach((b) => {
@@ -751,9 +780,14 @@ function initTerminalUi() {
   window.CTV.applyHero = () => { renderHeroes(); };
   window.CTV.applyWatchlist = () => { applyWatchlistSettings(); };
   window.CTV.applyNews = () => { renderNews(); };
+  window.CTV.onOtaCheck = () => {
+    const btn = document.getElementById('hdr-ota-btn');
+    if (btn) btn.classList.remove('loading');
+  };
 
-  // настройки-попапы (шестерёнки + D-pad)
+  // настройки-попапы (шестерёнки) + D-pad по табло/оверлеям
   if (window.initSettings) initSettings();
+  if (window.TvNav && TvNav.init) TvNav.init();
 
   // стартовое состояние из сохранённых настроек
   if (window.SETTINGS) {

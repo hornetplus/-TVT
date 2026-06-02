@@ -31,9 +31,9 @@ object UpdateManager {
     private const val KEY_WEB_SHA256 = "web_bundle_sha256"
     private const val KEY_LAST_CHECK_MS = "last_check_ms"
     private const val KEY_LAST_REMOTE_WEB = "last_remote_web"
-    private const val CHECK_COOLDOWN_MS = 6 * 60 * 60 * 1000L
+    private const val CHECK_COOLDOWN_MS = 0L // проверять обновления при КАЖДОМ старте
     private const val WEB_DIR = "ctvt-web"
-    const val BUNDLED_WEB_VERSION = 12
+    const val BUNDLED_WEB_VERSION = 26
 
     private val REQUIRED_WEB_FILES = arrayOf("index.html", "api.js", "terminal.js", "config.js")
 
