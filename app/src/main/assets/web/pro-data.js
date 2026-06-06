@@ -27,9 +27,9 @@ const PRO_I18N = {
   ru: {
     /* mode names */
     mode_general: 'Общий режим', mode_general_sub: 'Smart Investor · базовое табло',
-    mode_session: 'Session Intelligence', mode_session_sub: 'Азия · Европа · США',
+    mode_session: 'Обзор сессий', mode_session_sub: 'Азия · Европа · США',
     mode_deriv: 'Деривативы', mode_deriv_sub: 'Ликвидации · OI · Фандинг',
-    mode_whale: 'Whale Intelligence', mode_whale_sub: 'Потоки китов и их смысл',
+    mode_whale: 'Обзор китов', mode_whale_sub: 'Потоки китов и их смысл',
     mode_news: 'Smart News', mode_news_sub: 'Новости по значимости',
     mode_alerts: 'Smart Alerts', mode_alerts_sub: 'Сигналы и risk-пульс',
     mode_heatmap: 'Тепловая карта', mode_heatmap_sub: 'Обзор рынка · 30+ монет',
@@ -42,8 +42,10 @@ const PRO_I18N = {
     bias_bullish: 'Бычий', bias_bearish: 'Медвежий', bias_mixed: 'Смешанный',
     sess_open: 'Открытие', sess_close: 'Закрытие', sess_now: 'Текущая',
     sess_high: 'Максимум', sess_low: 'Минимум', sess_vol: 'Объём', sess_chg: 'Изм. за сессию',
+    sm_price: 'Цена', sm_volume: 'Объём', sm_mcap: 'Капитализация',
     oi_delta: 'Δ Open Interest', fund_shift: 'Сдвиг фандинга', liq_sess: 'Ликвидации',
-    top_news: 'Главная новость окна',
+    top_news: 'Главная новость сессии', sess_pending: 'Сессия ещё не началась',
+    expert: 'Эксперт', aiph_expectation: 'Ожидание', aiph_midpoint: 'Срез', aiph_closing: 'Заключение',
 
     /* risk tags */
     rt_short_squeeze: 'Short squeeze', rt_long_squeeze: 'Long squeeze',
@@ -54,10 +56,19 @@ const PRO_I18N = {
     /* derivatives */
     liq_pro: 'Ликвидации', liq_1h: 'За 1 час', liq_24h: 'За 24 часа', liq_session: 'В текущей сессии',
     liq_dominant: 'Перекос', liq_longs: 'Лонги', liq_shorts: 'Шорты',
-    liq_cluster: 'Зоны кластерного давления', liq_heat: 'Карта ликвидаций',
-    oi_pro: 'Open Interest', oi_current: 'Текущий OI', oi_interp: 'Связка цена + OI',
+    liq_cluster: 'Зоны кластерного давления', liq_heat: 'Карта ликвидаций', liq_byasset: 'Ликвидации по валютам',
+    oi_pro: 'Открытые позиции', oi_current: 'Текущий OI', oi_interp: 'Связка цена + OI',
     fund_pro: 'Фандинг-ставки', fund_current: 'Текущий фандинг', fund_dev: 'Отклонение от нейтрали', fund_neutral_band: 'нейтральный диапазон',
     risk_read: 'Сводная risk-интерпретация',
+    dv_live: 'в реальном времени', dv_price: 'Цена', dv_heat_sub: 'price × time · агрегировано по биржам',
+    dv_coins_sub: 'за 24ч · перекос', dv_ls: 'Лонг / Шорт', dv_ls_topratio: 'L/S топ-трейдеров',
+    dv_ls_top: 'Топ-трейдеры', dv_ls_retail: 'Ритейл',
+    dv_ls_warn: 'Ритейл перегружен в лонг сильнее умных денег', dv_ls_warn_s: 'Ритейл перегружен в шорт сильнее умных денег', dv_ls_bal: 'Позиционирование сбалансировано',
+    dv_options: 'Опционы', dv_dvol: 'DVOL · волатильность', dv_putcall: 'Пут / Колл', dv_maxpain: 'Макс. боль',
+    dv_leg_low: 'низкая', dv_leg_int: 'интенсивность', dv_leg_peak: 'пик',
+    dv_spot: 'спот', dv_exp: 'экспирация', dv_pc_call: 'перевес call', dv_pc_put: 'перевес put', dv_pc_bal: 'баланс',
+    dv_nodata: 'нет данных', dv_now: 'сейчас', dv_oitotal: 'OI совокупно',
+    dv_h: 'ч', dv_overheat: 'перегрев', dv_fund_cap: 'ставка по 8ч · 14 периодов', dv_oidelta: 'ΔOI 24ч',
 
     /* OI status */
     oi_new_money: 'Новые деньги · риск продолжения', oi_short_cover: 'Закрытие шортов',
@@ -72,6 +83,10 @@ const PRO_I18N = {
     wi_redistribution: 'Перераспределение', wi_neutral: 'Нейтральный перевод',
     wh_inflow: 'Притоки на биржи', wh_outflow: 'Оттоки с бирж', wh_net: 'Чистый поток',
     wh_significant: 'Значимый', wh_recent: 'Последние крупные переводы',
+    wh_graph: 'Граф потоков', wh_pressure: 'Давление китов', wh_index: 'КИТ-ИНДЕКС', wh_acc_s: 'накопл.', wh_sell_s: 'продажи',
+    wh_net24: 'чистый поток · 24ч', wh_summary: 'Сводка по китам', wh_largest: 'Крупнейший', wh_direction: 'Направление',
+    wh_moves: 'Движений · 24ч', wh_mode_l: 'Режим', wh_accum: 'Накопление', wh_distrib: 'Распределение', wh_withdraw: 'вывод', wh_deposit: 'завод',
+    wh_lg_acc: 'накопление', wh_lg_sell: 'давление продаж', wh_lg_redis: 'перераспределение',
 
     /* smart news */
     sn_impact: 'Влияние', sn_why: 'Почему важно', sn_affected: 'Активы',
@@ -83,6 +98,7 @@ const PRO_I18N = {
     /* alerts */
     al_pulse: 'Пульс рынка', al_risk_on: 'Risk-on', al_risk_off: 'Risk-off', al_neutral: 'Нейтрально',
     al_drivers: 'Что формирует пульс', al_feed: 'Лента сигналов', al_live: 'в реальном времени',
+    pc_oi: 'OI 24ч', pc_liq: 'Ликвидации', pc_fund: 'Фандинг BTC', pc_mom: 'Моментум 24ч',
     a_liquidation_spike: 'Всплеск ликвидаций', a_oi_surge: 'Рост Open Interest',
     a_funding_anomaly: 'Аномалия фандинга', a_session_breakout: 'Пробой сессии',
     a_volume_spike: 'Всплеск объёма', a_whale_inflow: 'Приток китов на биржу', a_risk_pulse: 'Сдвиг risk-режима',
@@ -92,7 +108,7 @@ const PRO_I18N = {
 
     /* heatmap */
     hm_title: 'Тепловая карта рынка', hm_size_note: 'Размер плитки — капитализация',
-    hm_m_24h: '24ч', hm_m_1h: '1ч', hm_m_7d: '7д', hm_m_vol: 'Объём',
+    hm_m_1m: '1м', hm_m_6h: '6ч', hm_m_12h: '12ч', hm_m_24h: '24ч', hm_m_1h: '1ч', hm_m_7d: '7д', hm_m_vol: 'Объём',
     hm_leg_up2: 'Сильный рост', hm_leg_up: 'Рост', hm_leg_flat: 'Нейтрально',
     hm_leg_dn: 'Падение', hm_leg_dn2: 'Сильное падение',
     hm_leg_volhi: 'Высокий объём', hm_leg_volmid: 'Средний', hm_leg_vollo: 'Низкий',
@@ -113,8 +129,10 @@ const PRO_I18N = {
     bias_bullish: 'Bullish', bias_bearish: 'Bearish', bias_mixed: 'Mixed',
     sess_open: 'Open', sess_close: 'Close', sess_now: 'Current',
     sess_high: 'High', sess_low: 'Low', sess_vol: 'Volume', sess_chg: 'Session change',
+    sm_price: 'Price', sm_volume: 'Volume', sm_mcap: 'Market cap',
     oi_delta: 'Δ Open Interest', fund_shift: 'Funding shift', liq_sess: 'Liquidations',
-    top_news: 'Top news of window',
+    top_news: 'Top news of session', sess_pending: 'Session not started yet',
+    expert: 'Expert', aiph_expectation: 'Expectation', aiph_midpoint: 'Mid-session', aiph_closing: 'Closing',
 
     rt_short_squeeze: 'Short squeeze', rt_long_squeeze: 'Long squeeze',
     rt_deleveraging: 'Deleveraging', rt_continuation: 'Trend continuation',
@@ -123,10 +141,19 @@ const PRO_I18N = {
 
     liq_pro: 'Liquidations', liq_1h: 'Past 1h', liq_24h: 'Past 24h', liq_session: 'This session',
     liq_dominant: 'Skew', liq_longs: 'Longs', liq_shorts: 'Shorts',
-    liq_cluster: 'Cluster pressure zones', liq_heat: 'Liquidation map',
+    liq_cluster: 'Cluster pressure zones', liq_heat: 'Liquidation map', liq_byasset: 'Liquidations by asset',
     oi_pro: 'Open Interest', oi_current: 'Current OI', oi_interp: 'Price + OI read',
     fund_pro: 'Funding rates', fund_current: 'Current funding', fund_dev: 'Deviation from neutral', fund_neutral_band: 'neutral band',
     risk_read: 'Aggregated risk read',
+    dv_live: 'real time', dv_price: 'Price', dv_heat_sub: 'price × time · aggregated across exchanges',
+    dv_coins_sub: '24h · skew', dv_ls: 'Long / Short', dv_ls_topratio: 'top traders L/S',
+    dv_ls_top: 'Top traders', dv_ls_retail: 'Retail',
+    dv_ls_warn: 'Retail more long than smart money', dv_ls_warn_s: 'Retail more short than smart money', dv_ls_bal: 'Positioning balanced',
+    dv_options: 'Options', dv_dvol: 'DVOL · volatility', dv_putcall: 'Put / Call ratio', dv_maxpain: 'Max Pain',
+    dv_leg_low: 'low', dv_leg_int: 'intensity', dv_leg_peak: 'peak',
+    dv_spot: 'spot', dv_exp: 'expiry', dv_pc_call: 'call-heavy', dv_pc_put: 'put-heavy', dv_pc_bal: 'balanced',
+    dv_nodata: 'no data', dv_now: 'now', dv_oitotal: 'OI total',
+    dv_h: 'h', dv_overheat: 'overheat', dv_fund_cap: '8h rate · 14 periods', dv_oidelta: 'ΔOI 24h',
 
     oi_new_money: 'New money · continuation risk', oi_short_cover: 'Short covering',
     oi_bear_build: 'Bearish buildup', oi_delever: 'Deleveraging',
@@ -138,6 +165,10 @@ const PRO_I18N = {
     wi_redistribution: 'Redistribution', wi_neutral: 'Neutral transfer',
     wh_inflow: 'Exchange inflows', wh_outflow: 'Exchange outflows', wh_net: 'Net flow',
     wh_significant: 'Significant', wh_recent: 'Recent large transfers',
+    wh_graph: 'Flow graph', wh_pressure: 'Whale pressure', wh_index: 'WHALE INDEX', wh_acc_s: 'accum.', wh_sell_s: 'sells',
+    wh_net24: 'net flow · 24h', wh_summary: 'Whale summary', wh_largest: 'Largest', wh_direction: 'Direction',
+    wh_moves: 'Moves · 24h', wh_mode_l: 'Mode', wh_accum: 'Accumulation', wh_distrib: 'Distribution', wh_withdraw: 'withdrawal', wh_deposit: 'deposit',
+    wh_lg_acc: 'accumulation', wh_lg_sell: 'sell pressure', wh_lg_redis: 'redistribution',
 
     sn_impact: 'Impact', sn_why: 'Why it matters', sn_affected: 'Assets',
     sent_positive: 'Positive', sent_negative: 'Negative', sent_neutral: 'Neutral',
@@ -147,6 +178,7 @@ const PRO_I18N = {
 
     al_pulse: 'Market pulse', al_risk_on: 'Risk-on', al_risk_off: 'Risk-off', al_neutral: 'Neutral',
     al_drivers: 'Pulse drivers', al_feed: 'Signal feed', al_live: 'real-time',
+    pc_oi: 'OI 24h', pc_liq: 'Liquidations', pc_fund: 'BTC funding', pc_mom: '24h momentum',
     a_liquidation_spike: 'Liquidation spike', a_oi_surge: 'Open Interest surge',
     a_funding_anomaly: 'Funding anomaly', a_session_breakout: 'Session breakout',
     a_volume_spike: 'Volume spike', a_whale_inflow: 'Whale inflow to exchange', a_risk_pulse: 'Risk regime shift',
@@ -156,7 +188,7 @@ const PRO_I18N = {
 
     /* heatmap */
     hm_title: 'Market heatmap', hm_size_note: 'Tile size — market cap',
-    hm_m_24h: '24H', hm_m_1h: '1H', hm_m_7d: '7D', hm_m_vol: 'Volume',
+    hm_m_1m: '1M', hm_m_6h: '6H', hm_m_12h: '12H', hm_m_24h: '24H', hm_m_1h: '1H', hm_m_7d: '7D', hm_m_vol: 'Volume',
     hm_leg_up2: 'Strong gain', hm_leg_up: 'Gain', hm_leg_flat: 'Neutral',
     hm_leg_dn: 'Loss', hm_leg_dn2: 'Strong loss',
     hm_leg_volhi: 'High volume', hm_leg_volmid: 'Medium', hm_leg_vollo: 'Low',

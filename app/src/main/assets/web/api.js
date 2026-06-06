@@ -219,6 +219,22 @@ async function pollGas() {
   }
 }
 
+/* ---------- Комиссия Bitcoin (mempool.space), для ротации с газом ETH ---------- */
+async function pollBtcFee() {
+  const d = await fetchJSON('https://mempool.space/api/v1/fees/recommended', {}, 10000);
+  if (!d || !Number.isFinite(+d.fastestFee)) throw new Error('btcfee: bad shape');
+  const fast = +d.fastestFee;
+  const med = Number.isFinite(+d.halfHourFee) ? +d.halfHourFee : fast;
+  const slow = Number.isFinite(+d.hourFee) ? +d.hourFee : (Number.isFinite(+d.economyFee) ? +d.economyFee : med);
+  const btcPrice = (lastMarkets.BTC && lastMarkets.BTC.priceUsd) || 0;
+  const vbytes = 140; // типичная транзакция
+  const usd = btcPrice ? (med * vbytes * 1e-8 * btcPrice) : null;
+  FEED.emit('btcfee', {
+    low: slow, avg: med, high: fast,
+    usd: usd != null ? '$' + usd.toFixed(2) : null,
+  });
+}
+
 /* ---------- 5. ФАНДИНГ (OKX → Bybit) ---------- */
 async function pollFunding() {
   const out = [];
@@ -633,6 +649,7 @@ function startPolling() {
     ['global', pollGlobal, I.global],
     ['fng', pollFng, I.fng],
     ['gas', pollGas, I.gas],
+    ['btcfee', pollBtcFee, 60000],
     ['funding', pollFunding, I.funding],
     ['news', pollNews, I.news],
     ['whale', pollWhale, I.whale],

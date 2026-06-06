@@ -337,8 +337,13 @@ function renderFunding() {
 function fmtGasVal(v) {
   return Number.isFinite(v) ? String(v) : '—';
 }
+let gasRotateMode = 'eth'; // 'eth' | 'btc' — ротация: газ Ethereum / комиссия Bitcoin
 function renderGas() {
-  const g = INDICATORS.gas;
+  const isBtc = gasRotateMode === 'btc' && INDICATORS.btcfee && INDICATORS.btcfee.avg != null;
+  const g = isBtc ? INDICATORS.btcfee : INDICATORS.gas;
+  const title = $('#gas-title');
+  if (title) title.innerHTML = isBtc ? `${T('btc_fee')} <b>· Bitcoin</b>` : `${T('gas')} <b>· Ethereum</b>`;
+  const unit = $('#gas-unit'); if (unit) unit.textContent = isBtc ? 'sat/vB' : 'Gwei';
   const main = $('#gas-val'); if (main) main.textContent = fmtGasVal(g.avg);
   const usd = $('.gas-usd'); if (usd) usd.textContent = g.usd || '';
   const gv = $$('.gas-tier .gv');
@@ -347,6 +352,13 @@ function renderGas() {
     gv[1].textContent = fmtGasVal(g.avg);
     gv[2].textContent = fmtGasVal(g.high);
   }
+}
+function startGasRotation() {
+  setInterval(() => {
+    if (!(INDICATORS.btcfee && INDICATORS.btcfee.avg != null)) return; // нет данных BTC — показываем только газ
+    gasRotateMode = gasRotateMode === 'eth' ? 'btc' : 'eth';
+    renderGas();
+  }, 8000);
 }
 function renderLiquidations() {
   const liq = INDICATORS.liquidations;
@@ -428,7 +440,7 @@ function computeAltseason(dominance) {
 /* =========================================================
    6. НОВОСТИ (§12) — данные из FEED 'news:item'
    ========================================================= */
-const NEWS_MAX = 8;
+const NEWS_MAX = 6;
 let newsArchive = [];
 let newsDomSeq = 0;
 const newsIds = new Set();
@@ -797,6 +809,7 @@ function initTerminalUi() {
 }
 
 initTerminalUi();
+startGasRotation();
 
 if (window.FEED) {
   FEED.on('markets', onMarkets);
@@ -804,6 +817,7 @@ if (window.FEED) {
   FEED.on('fng', onFng);
   FEED.on('funding', (arr) => { if (Array.isArray(arr)) { INDICATORS.funding = arr.map((f) => ({ sym: f.sym, val: f.val })); renderFunding(); } });
   FEED.on('gas', (g) => { INDICATORS.gas = { value: g.avg, low: g.low, avg: g.avg, high: g.high, usd: g.usd }; renderGas(); });
+  FEED.on('btcfee', (b) => { INDICATORS.btcfee = b; renderGas(); });
   FEED.on('liquidations', onLiquidations);
   FEED.on('news:item', onNews);
   FEED.on('whale', onWhale);

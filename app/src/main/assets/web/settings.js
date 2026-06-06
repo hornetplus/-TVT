@@ -26,6 +26,7 @@ const SETTINGS = (() => {
     heroSymbols: ['BTC', 'ETH'],               // 1..6; первый — крупный (featured)
     trackedAssets: ALL.slice(),                // пул для watchlist (вкл. закреплённые)
     disabledNewsSources: [],                   // имена из CONFIG.newsSources, которые выключены
+    whaleTokens: ['BTC', 'ETH', 'TON', 'SOL', 'XRP'], // монеты-«планеты» у каждой биржи в графе китов
   };
 
   let state = load();
@@ -72,6 +73,8 @@ const SETTINGS = (() => {
     rotatingPool() { return state.trackedAssets.slice(); },
     newsEnabled(name) { return !state.disabledNewsSources.includes(name); },
     setDisabledNews(arr) { state.disabledNewsSources = arr.slice(); save(); },
+    get whaleTokens() { return Array.isArray(state.whaleTokens) && state.whaleTokens.length ? state.whaleTokens : defaults.whaleTokens; },
+    setWhaleTokens(arr) { state.whaleTokens = (Array.isArray(arr) ? arr : []).filter((x, i, a) => x && a.indexOf(x) === i).slice(0, 8); if (!state.whaleTokens.length) state.whaleTokens = defaults.whaleTokens.slice(); save(); },
     isPinned: (s) => PINNED.includes(s),
   };
 })();

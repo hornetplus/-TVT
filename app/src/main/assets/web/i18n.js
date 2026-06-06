@@ -40,7 +40,7 @@ const I18N = (() => {
       liquidations: 'Ликвидации',
       long: 'Лонг', short: 'Шорт', na: 'н/д',
       funding: 'Фандинг',
-      gas: 'Газ', gas_low: 'Низкий', gas_mid: 'Средний', gas_high: 'Высокий',
+      gas: 'Газ', gas_low: 'Низкий', gas_mid: 'Средний', gas_high: 'Высокий', btc_fee: 'Комиссия',
 
       news: 'Новости', all: 'Все',
       whale: 'Крупные сделки', realtime: 'в реальном времени', all_tx: 'Все транзакции',
@@ -120,7 +120,7 @@ const I18N = (() => {
       liquidations: 'Liquidations',
       long: 'Long', short: 'Short', na: 'n/a',
       funding: 'Funding',
-      gas: 'Gas', gas_low: 'Low', gas_mid: 'Medium', gas_high: 'High',
+      gas: 'Gas', gas_low: 'Low', gas_mid: 'Medium', gas_high: 'High', btc_fee: 'Fee',
 
       news: 'News', all: 'All',
       whale: 'Large trades', realtime: 'real-time', all_tx: 'All transactions',
