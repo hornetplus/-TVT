@@ -33,7 +33,7 @@ object UpdateManager {
     private const val KEY_LAST_REMOTE_WEB = "last_remote_web"
     private const val CHECK_COOLDOWN_MS = 0L // проверять обновления при КАЖДОМ старте
     private const val WEB_DIR = "ctvt-web"
-    const val BUNDLED_WEB_VERSION = 59
+    const val BUNDLED_WEB_VERSION = 60
 
     private val REQUIRED_WEB_FILES = arrayOf("index.html", "api.js", "terminal.js", "config.js")
 
@@ -150,6 +150,7 @@ object UpdateManager {
             val apkUrl = manifest.optString("apkUrl", "")
             val apkSha = manifest.optString("apkSha256", "").trim()
             if (
+                BuildConfig.SELF_UPDATE_APK &&   // во флаворе rustore = false → APK обновляется через RuStore
                 remoteApkCode > BuildConfig.VERSION_CODE &&
                 apkUrl.isNotBlank() &&
                 apkSha.isNotBlank()

@@ -13,7 +13,9 @@
     <!-- Нужно только если позже подключите реальные HTTPS-API/вебсокеты.
          Для текущей офлайн-сборки (mock-данные в assets) не используется. -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+    <!-- REQUEST_INSTALL_PACKAGES добавляется только во флаворе standard (само-обновление APK).
+         Во флаворе rustore его НЕТ — обновления идут через RuStore. -->
+
 
     <application
         android:allowBackup="true"

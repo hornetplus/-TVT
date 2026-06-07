@@ -68,5 +68,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: crypto-tv-terminal-release
-          path: ${{ steps.loc.outputs.dir }}/app/build/outputs/apk/release/*.apk
+          path: ${{ steps.loc.outputs.dir }}/app/build/outputs/apk/*/release/*.apk
           if-no-files-found: error
