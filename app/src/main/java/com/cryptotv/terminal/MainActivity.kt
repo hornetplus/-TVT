@@ -130,6 +130,17 @@ class MainActivity : ComponentActivity() {
             ),
         )
 
+        // небольшая версия в углу (поверх WebView, под заставкой)
+        root.addView(TextView(this).apply {
+            text = "v0." + UpdateManager.localWebVersion(applicationContext)
+            setTextColor(0x66BFD3E6.toInt())
+            textSize = 11f
+            setPadding(dp(6), dp(2), dp(6), dp(2))
+        }, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { gravity = Gravity.BOTTOM or Gravity.END; rightMargin = dp(10); bottomMargin = dp(8) })
+
         // заставка поверх WebView
         root.addView(buildSplash(), FrameLayout.LayoutParams(
             FrameLayout.LayoutParams.MATCH_PARENT,
@@ -197,6 +208,15 @@ class MainActivity : ComponentActivity() {
             FrameLayout.LayoutParams.WRAP_CONTENT,
             FrameLayout.LayoutParams.WRAP_CONTENT,
         ).apply { gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL; bottomMargin = dp(48) })
+        // версия под надписью проверки обновлений
+        layer.addView(TextView(this).apply {
+            text = "v0." + UpdateManager.localWebVersion(this@MainActivity)
+            setTextColor(0xFF6E84A0.toInt())
+            textSize = 12f
+        }, FrameLayout.LayoutParams(
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+            FrameLayout.LayoutParams.WRAP_CONTENT,
+        ).apply { gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL; bottomMargin = dp(24) })
         splash = layer
         return layer
     }
