@@ -11,8 +11,37 @@ android {
         applicationId "com.cryptotv.terminal"
         minSdk 21          // покрывает практически все Android TV / Fire TV
         targetSdk 34
-        versionCode 6
-        versionName "1.5"
+        versionCode 9
+        versionName "1.8"
+    }
+
+    // Витрины распространения:
+    //  • standard — sideload c jjkkll.top, само-обновление APK (REQUEST_INSTALL_PACKAGES)
+    //  • rustore  — для RuStore: БЕЗ REQUEST_INSTALL_PACKAGES и без само-обновления APK
+    //               (обновления APK идут через RuStore; web-OTA дашборда остаётся)
+    flavorDimensions "store"
+    productFlavors {
+        standard {
+            dimension "store"
+            buildConfigField "boolean", "SELF_UPDATE_APK", "true"
+        }
+        rustore {
+            dimension "store"
+            buildConfigField "boolean", "SELF_UPDATE_APK", "false"
+        }
+    }
+
+    // Подпись релиза — из переменных окружения (GitHub Secrets). Секреты в репозиторий НЕ коммитятся.
+    def ctvtStorePw = System.getenv('CTVT_STORE_PW')
+    signingConfigs {
+        release {
+            if (ctvtStorePw != null && !ctvtStorePw.isEmpty()) {
+                storeFile file(System.getenv('CTVT_KEYSTORE') ?: 'ctvt-release.keystore')
+                storePassword ctvtStorePw
+                keyAlias System.getenv('CTVT_KEY_ALIAS') ?: 'ctvt'
+                keyPassword (System.getenv('CTVT_KEY_PW') ?: ctvtStorePw)
+            }
+        }
     }
 
     buildTypes {
@@ -21,9 +50,9 @@ android {
             // Это и есть APK, который собирает GitHub Actions (artifact app-debug.apk).
         }
         release {
+            if (ctvtStorePw != null && !ctvtStorePw.isEmpty()) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            // Для публикации добавьте signingConfig — см. README → «Подпись релиза».
         }
     }
 

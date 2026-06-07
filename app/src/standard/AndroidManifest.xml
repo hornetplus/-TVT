@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Флавор standard (sideload c jjkkll.top): добавляет разрешение на установку APK,
+  необходимое для само-обновления приложения «по воздуху».
+  Во флаворе rustore этого манифеста нет → разрешение не попадает в сборку.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+</manifest>

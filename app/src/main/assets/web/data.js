@@ -1,31 +1,41 @@
 /* =========================================================
    Crypto TV Terminal — метаданные и НАЧАЛЬНОЕ состояние
-   Цвета/глифы/имена монет + стартовые значения для первого кадра.
-   Реальные числа приходят из api.js и перезаписывают эти значения
-   в течение пары секунд после запуска. Новости и крупные сделки
-   начинаются пустыми (показывается «загрузка»), чтобы на экране не
-   было выдуманного контента до прихода реальных данных.
    ========================================================= */
 'use strict';
 
-// color -> CSS var --c-*, glyph -> символ в кружке
 const ASSETS = {
-  BTC:  { name: 'Bitcoin',   color: 'btc',  glyph: '₿' },
-  ETH:  { name: 'Ethereum',  color: 'eth',  glyph: 'Ξ' },
-  SOL:  { name: 'Solana',    color: 'sol',  glyph: 'S' },
-  BNB:  { name: 'BNB',       color: 'bnb',  glyph: 'B' },
-  XRP:  { name: 'XRP',       color: 'xrp',  glyph: 'X' },
-  TON:  { name: 'Toncoin',   color: 'ton',  glyph: '◈' },
-  DOGE: { name: 'Dogecoin',  color: 'doge', glyph: 'Ð' },
-  ADA:  { name: 'Cardano',   color: 'ada',  glyph: '₳' },
-  AVAX: { name: 'Avalanche', color: 'avax', glyph: 'A' },
-  LINK: { name: 'Chainlink', color: 'link', glyph: 'L' },
-  TRX:  { name: 'TRON',      color: 'trx',  glyph: 'T' },
-  DOT:  { name: 'Polkadot',  color: 'dot',  glyph: '●' },
-  USDC: { name: 'USD Coin',  color: 'usdc', glyph: '$' },
+  BTC:  { name: 'Bitcoin',       color: 'btc',  glyph: '₿' },
+  ETH:  { name: 'Ethereum',      color: 'eth',  glyph: 'Ξ' },
+  SOL:  { name: 'Solana',        color: 'sol',  glyph: 'S' },
+  BNB:  { name: 'BNB',           color: 'bnb',  glyph: 'B' },
+  XRP:  { name: 'XRP',           color: 'xrp',  glyph: 'X' },
+  TON:  { name: 'Toncoin',       color: 'ton',  glyph: '◈' },
+  DOGE: { name: 'Dogecoin',      color: 'doge', glyph: 'Ð' },
+  ADA:  { name: 'Cardano',       color: 'ada',  glyph: '₳' },
+  AVAX: { name: 'Avalanche',     color: 'avax', glyph: 'A' },
+  LINK: { name: 'Chainlink',     color: 'link', glyph: 'L' },
+  TRX:  { name: 'TRON',          color: 'trx',  glyph: 'T' },
+  DOT:  { name: 'Polkadot',      color: 'dot',  glyph: '●' },
+  MATIC:{ name: 'Polygon',       color: 'matic',glyph: 'M' },
+  LTC:  { name: 'Litecoin',      color: 'ltc',  glyph: 'Ł' },
+  SHIB: { name: 'Shiba Inu',     color: 'shib', glyph: 'S' },
+  BCH:  { name: 'Bitcoin Cash',  color: 'bch',  glyph: 'B' },
+  UNI:  { name: 'Uniswap',       color: 'uni',  glyph: 'U' },
+  ATOM: { name: 'Cosmos',        color: 'atom', glyph: 'C' },
+  NEAR: { name: 'NEAR',          color: 'near', glyph: 'N' },
+  APT:  { name: 'Aptos',         color: 'apt',  glyph: 'A' },
+  SUI:  { name: 'Sui',           color: 'sui',  glyph: 'S' },
+  HBAR: { name: 'Hedera',        color: 'hbar', glyph: 'H' },
+  ICP:  { name: 'Internet Computer', color: 'icp', glyph: 'I' },
+  FIL:  { name: 'Filecoin',      color: 'fil',  glyph: 'F' },
+  ARB:  { name: 'Arbitrum',      color: 'arb',  glyph: 'A' },
+  OP:   { name: 'Optimism',      color: 'op',   glyph: 'O' },
+  INJ:  { name: 'Injective',     color: 'inj',  glyph: 'I' },
+  IMX:  { name: 'Immutable',     color: 'imx',  glyph: 'I' },
+  STX:  { name: 'Stacks',        color: 'stx',  glyph: 'S' },
+  USDC: { name: 'USD Coin',      color: 'usdc', glyph: '$' },
 };
 
-// рабочее состояние активов (сидируется нулями/плейсхолдером, наполняется из api.js)
 const ASSET_STATE = {};
 Object.keys(ASSETS).forEach((sym) => {
   const a = ASSETS[sym];
@@ -36,30 +46,24 @@ Object.keys(ASSETS).forEach((sym) => {
   };
 });
 
-// левый список (ТЗ §10): фикс + ротация окна
 const WATCHLIST_CFG = {
-  fixedAssets: ['BTC', 'ETH'],
-  rotatingPool: ['SOL', 'BNB', 'XRP', 'TON', 'DOGE', 'ADA', 'AVAX', 'LINK', 'TRX', 'DOT'],
-  windowSize: 6,
-  rotationIntervalSec: 45,
+  windowSize: 8,
+  rotationIntervalSec: 10,
 };
 
-// hero-карточки (ТЗ §11) — уровни считаются из 24ч/7д при обновлении
 const HERO_STATE = {
   BTC: { symbol: 'BTC', name: 'Bitcoin',  color: 'btc', glyph: '₿', priceUsd: 0, change24hPct: 0, change7dPct: 0, support: [0, 0], resistance: [0, 0], direction: 'up', sparkline: [] },
   ETH: { symbol: 'ETH', name: 'Ethereum', color: 'eth', glyph: 'Ξ', priceUsd: 0, change24hPct: 0, change7dPct: 0, support: [0, 0], resistance: [0, 0], direction: 'up', sparkline: [] },
 };
 
-// шапка (ТЗ §7.2)
 const MARKET = {
-  status: 'open',           // крипторынок работает 24/7
+  status: 'open',
   fearGreed: 50, fgLabel: 'Neutral',
   btcDominance: 0,
   totalMarketCapUsd: 0, capChange: 0,
   altseason: 0,
 };
 
-// индикаторы (ТЗ §7.8). funding/gas/liquidations наполняются из api.js (Coinalyze)
 const INDICATORS = {
   liquidations: { asset: 'BTC', total: '—', longUsd: '—', shortUsd: '—', longPct: null },
   funding: [
@@ -69,6 +73,5 @@ const INDICATORS = {
   gas: { value: null, low: null, avg: null, high: null, usd: null },
 };
 
-// стартуют пустыми — наполняются реальными данными из api.js
 const NEWS_SEED = [];
 const WHALE_SEED = [];

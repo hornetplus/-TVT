@@ -34,6 +34,24 @@ function cgHeaders() {
   return CONFIG.keys.coingeckoDemo ? { 'x-cg-demo-api-key': CONFIG.keys.coingeckoDemo } : {};
 }
 
+/* ---------- серверный фолбэк: данные с pro-data.json, когда биржи
+   недоступны напрямую (гео-блок Binance, слабый Wi-Fi, троттлинг CoinGecko).
+   Источник — твой сервер (как новости), поэтому работает на любой сети. ---------- */
+const PRO_DATA_URL = (CONFIG.news && CONFIG.news.bundleUrl)
+  ? CONFIG.news.bundleUrl.replace(/news\.json(\?.*)?$/, 'pro-data.json')
+  : 'https://jjkkll.top/ctvt/pro-data.json';
+let _srvTermCache = { ts: 0, data: null };
+async function serverTerminal() {
+  // если pro-live.js уже держит свежий PRO_DATA — берём без лишнего запроса
+  if (window.PRO_DATA && window.PRO_DATA.terminal) return window.PRO_DATA.terminal;
+  if (_srvTermCache.data && Date.now() - _srvTermCache.ts < 50000) return _srvTermCache.data;
+  try {
+    const d = await fetchJSON(PRO_DATA_URL, {}, 12000);
+    _srvTermCache = { ts: Date.now(), data: (d && d.terminal) ? d.terminal : null };
+  } catch (e) { /* оставляем прошлый кэш */ }
+  return _srvTermCache.data;
+}
+
 /* ---------- утилиты ---------- */
 let lastMarkets = {};
 function cleanText(s) {
@@ -81,32 +99,60 @@ function categorize(title) {
   return 'market';
 }
 
-/* ---------- 1. РЫНОК: цены/24ч/7д/объём/спарклайн (CoinGecko) ---------- */
+/* ---------- 1. РЫНОК: цены/24ч/7д/объём/спарклайн (CoinGecko → сервер) ---------- */
 async function pollMarkets() {
-  const ids = Object.values(CONFIG.coingeckoIds).join(',');
-  const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}` +
-              `&order=market_cap_desc&per_page=250&page=1&sparkline=true&price_change_percentage=24h,7d`;
-  const data = await fetchJSON(url, { headers: cgHeaders() }, 15000);
-  if (!Array.isArray(data)) throw new Error('markets: bad shape');
-  const idToSym = {};
-  Object.entries(CONFIG.coingeckoIds).forEach(([s, i]) => { idToSym[i] = s; });
+  try {
+    const ids = Object.values(CONFIG.coingeckoIds).join(',');
+    const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}` +
+                `&order=market_cap_desc&per_page=250&page=1&sparkline=true&price_change_percentage=24h,7d`;
+    const data = await fetchJSON(url, { headers: cgHeaders() }, 15000);
+    if (!Array.isArray(data)) throw new Error('markets: bad shape');
+    const idToSym = {};
+    Object.entries(CONFIG.coingeckoIds).forEach(([s, i]) => { idToSym[i] = s; });
+    const bySym = {};
+    data.forEach((c) => {
+      const sym = idToSym[c.id];
+      if (!sym) return;
+      bySym[sym] = {
+        symbol: sym,
+        priceUsd: c.current_price,
+        change24hPct: c.price_change_percentage_24h_in_currency ?? c.price_change_percentage_24h ?? 0,
+        change7dPct: c.price_change_percentage_7d_in_currency ?? 0,
+        volumeUsd: c.total_volume,
+        high24h: c.high_24h,
+        low24h: c.low_24h,
+        sparkline: (c.sparkline_in_7d && c.sparkline_in_7d.price) ? c.sparkline_in_7d.price : [],
+      };
+    });
+    lastMarkets = bySym;
+    FEED.emit('markets', bySym);
+  } catch (e) {
+    if (await marketsFromServer()) return; // биржа недоступна → берём цены с сервера
+    throw e;
+  }
+}
+async function marketsFromServer() {
+  const t = await serverTerminal();
+  if (!t || !t.markets) return false;
   const bySym = {};
-  data.forEach((c) => {
-    const sym = idToSym[c.id];
-    if (!sym) return;
+  Object.keys(t.markets).forEach((sym) => {
+    const m = t.markets[sym];
+    if (!m || m.price == null) return;
     bySym[sym] = {
       symbol: sym,
-      priceUsd: c.current_price,
-      change24hPct: c.price_change_percentage_24h_in_currency ?? c.price_change_percentage_24h ?? 0,
-      change7dPct: c.price_change_percentage_7d_in_currency ?? 0,
-      volumeUsd: c.total_volume,
-      high24h: c.high_24h,
-      low24h: c.low_24h,
-      sparkline: (c.sparkline_in_7d && c.sparkline_in_7d.price) ? c.sparkline_in_7d.price : [],
+      priceUsd: m.price,
+      change24hPct: m.ch24 != null ? m.ch24 : 0,
+      change7dPct: m.ch7d != null ? m.ch7d : 0,
+      volumeUsd: m.vol || 0,
+      high24h: m.high,
+      low24h: m.low,
+      sparkline: Array.isArray(m.spark) ? m.spark : [],
     };
   });
+  if (!Object.keys(bySym).length) return false;
   lastMarkets = bySym;
   FEED.emit('markets', bySym);
+  return true;
 }
 
 /* ---------- 2. ГЛОБАЛ: капитализация + доминация BTC ---------- */
@@ -219,6 +265,22 @@ async function pollGas() {
   }
 }
 
+/* ---------- Комиссия Bitcoin (mempool.space), для ротации с газом ETH ---------- */
+async function pollBtcFee() {
+  const d = await fetchJSON('https://mempool.space/api/v1/fees/recommended', {}, 10000);
+  if (!d || !Number.isFinite(+d.fastestFee)) throw new Error('btcfee: bad shape');
+  const fast = +d.fastestFee;
+  const med = Number.isFinite(+d.halfHourFee) ? +d.halfHourFee : fast;
+  const slow = Number.isFinite(+d.hourFee) ? +d.hourFee : (Number.isFinite(+d.economyFee) ? +d.economyFee : med);
+  const btcPrice = (lastMarkets.BTC && lastMarkets.BTC.priceUsd) || 0;
+  const vbytes = 140; // типичная транзакция
+  const usd = btcPrice ? (med * vbytes * 1e-8 * btcPrice) : null;
+  FEED.emit('btcfee', {
+    low: slow, avg: med, high: fast,
+    usd: usd != null ? '$' + usd.toFixed(2) : null,
+  });
+}
+
 /* ---------- 5. ФАНДИНГ (OKX → Bybit) ---------- */
 async function pollFunding() {
   const out = [];
@@ -237,6 +299,13 @@ async function pollFunding() {
       } catch (e) { /* оставляем null */ }
     }
     out.push({ sym, val: rate });
+  }
+  if (out.every((o) => o.val == null)) {
+    const t = await serverTerminal();
+    if (t && Array.isArray(t.funding) && t.funding.some((f) => f.val != null)) {
+      FEED.emit('funding', t.funding);
+      return;
+    }
   }
   FEED.emit('funding', out);
 }
@@ -543,8 +612,21 @@ async function pollWhale() {
     }
     total += got;
   }
+  if (total === 0) await whaleFromServer(); // биржи недоступны → последние крупные сделки с сервера
   if (whaleSeen.size > 3000) whaleSeen = new Set([...whaleSeen].slice(-1500));
   FEED.emit('status', { channel: 'whale', ok: total > 0, count: total });
+}
+async function whaleFromServer() {
+  const t = await serverTerminal();
+  if (!t || !Array.isArray(t.whale)) return;
+  // сервер отдаёт новейшие первыми; эмитим в обратном порядке, чтобы свежие оказались сверху
+  t.whale.slice().reverse().forEach((w) => {
+    if (!w || !w.asset) return;
+    const key = 'srv:' + w.asset + ':' + w.ts + ':' + w.usd;
+    if (whaleSeen.has(key)) return;
+    whaleSeen.add(key);
+    FEED.emit('whale', { asset: w.asset, dir: w.dir, amount: w.amount, usd: w.usd, addr: w.addr, ts: w.ts });
+  });
 }
 
 /* ---------- 8. ЛИКВИДАЦИИ (Coinalyze) — BTC, ETH, TON, SOL по очереди ---------- */
@@ -594,17 +676,35 @@ async function pollLiquidations() {
     `&from=${from}&to=${to}&convert_to_usd=true` +
     `&api_key=${encodeURIComponent(cfg.apiKey)}`;
 
-  const data = await fetchJSON(url, {}, 15000);
-  if (!Array.isArray(data) || !data.length) throw new Error('liquidations: bad shape');
+  try {
+    const data = await fetchJSON(url, {}, 15000);
+    if (!Array.isArray(data) || !data.length) throw new Error('liquidations: bad shape');
 
-  let longUsd = 0;
-  let shortUsd = 0;
-  (data[0].history || []).forEach((h) => {
-    longUsd += Number(h.l) || 0;
-    shortUsd += Number(h.s) || 0;
+    let longUsd = 0;
+    let shortUsd = 0;
+    (data[0].history || []).forEach((h) => {
+      longUsd += Number(h.l) || 0;
+      shortUsd += Number(h.s) || 0;
+    });
+    liqByAsset[asset] = { longUsd, shortUsd, symbol };
+    emitLiquidationsForAsset(asset);
+  } catch (e) {
+    // Coinalyze недоступен → ликвидации с сервера
+    if (!liqByAsset[asset]) await liqFromServer();
+    emitLiquidationsForAsset(asset);
+  }
+}
+async function liqFromServer() {
+  const t = await serverTerminal();
+  if (!t || !t.liquidations) return false;
+  let any = false;
+  Object.keys(t.liquidations).forEach((sym) => {
+    const l = t.liquidations[sym];
+    if (!l) return;
+    liqByAsset[sym] = { longUsd: l.longUsd || 0, shortUsd: l.shortUsd || 0 };
+    any = true;
   });
-  liqByAsset[asset] = { longUsd, shortUsd, symbol };
-  emitLiquidationsForAsset(asset);
+  return any;
 }
 
 /* ---------- планировщик ---------- */
@@ -633,6 +733,7 @@ function startPolling() {
     ['global', pollGlobal, I.global],
     ['fng', pollFng, I.fng],
     ['gas', pollGas, I.gas],
+    ['btcfee', pollBtcFee, 60000],
     ['funding', pollFunding, I.funding],
     ['news', pollNews, I.news],
     ['whale', pollWhale, I.whale],
